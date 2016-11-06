@@ -28,6 +28,16 @@ Plugin 'koalaman/shellcheck'
 
 "Vim-surround quoting tool
 Plugin 'tpope/vim-surround'
+
+" autocompletion tool
+Plugin 'ajh17/vimcompletesme'
+
+
+" Whitespace fixer
+Plugin 'bronson/vim-trailing-whitespace'
+
+" Symbol comletion for () {}, etc
+Plugin 'raimondi/delimitmate'
 " The following are examples of different formats supported.
 " Keep Plugin commands between vundle#begin/end.
 " plugin on GitHub repo
@@ -230,8 +240,13 @@ set shiftwidth=4
 set softtabstop=4
 
 autocmd BufNewFile,BufRead *.rb set filetype=ruby
-autocmd Filetype bash setlocal expandtab tabstop=2 shiftwidth=2 softtabstop=2
+autocmd Filetype bash setlocal expandtab tabstop=4 shiftwidth=2 softtabstop=2
 set expandtab
 set tabstop=4
 set shiftwidth=4
 set softtabstop=4
+
+" Plugin Options
+"
+" vimcompletesme: complete by tag
+autocmd FileType text,markdown let b:vcm_tab_complete = 'tags'
