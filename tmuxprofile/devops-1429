@@ -1,0 +1,11 @@
+# Ops session
+new -s DEVOPS-1429 -n local
+neww -n tm_base_editor
+send-keys 'repos' C-m
+send-keys 'cd tm_base' C-m
+split-window -h
+send-keys 'repos' C-m
+send-keys 'cd tm_base' C-m
+split-window -v
+send-keys 'repos' C-m
+send-keys 'cd tm_base' C-m
