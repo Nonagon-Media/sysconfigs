@@ -32,6 +32,8 @@ Plugin 'tpope/vim-surround'
 " autocompletion tool
 Plugin 'ajh17/vimcompletesme'
 
+" Hashicorp Formatting
+Plugin 'fatih/vim-hclfmt'
 
 " Whitespace fixer
 Plugin 'bronson/vim-trailing-whitespace'
@@ -72,6 +74,11 @@ filetype plugin indent on    " required
 "
 " Keybindings
 map <silent> <C-n> :NERDTreeToggle<CR>
+
+" Terraform HCL settings
+let g:hcl_fmt_autosave = 0
+let g:tf_fmt_autosave = 0
+let g:normal_fmt_autosave = 0
 
 " xoria settings
 " Initialization {{{
