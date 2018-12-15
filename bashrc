@@ -1,11 +1,11 @@
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/home/tthompson/bin
 
 # Prompt
-PS1="\u@\h:\w\$: "
+#PS1="\u@\h:\w\$: "
+PS1="[\h:]\w\$: "
 
 # SSH shortcut
-# Change the domain as appropriate
-#function conn { ssh "$1".domain.com; }
+#function conn { ssh_conn "$1".hostname.com; }
 #export -f conn
 
 #################
@@ -13,17 +13,18 @@ PS1="\u@\h:\w\$: "
 #################
 
 # Hostname in tmux pane
-# Obviously, this won't work w/o tmux installed
-ssh() {
+conn() {
     if [ "$(ps -p $(ps -p $$ -o ppid=) -o comm=)" = "tmux" ]; then
-        tmux rename-window "SERVER:$(echo $* | cut -d . -f 1)"
-        command ssh "$@"
+        tmux rename-window "SERVER:$(echo $* | cut -d . -f 1).hostname.com"
+        command ssh -t "$@" "cd /home/tthompson; bash --rcfile /home/tthompson/.bashrc -i"
+        #command ssh "$@"
         tmux set-window-option automatic-rename "on" 1>/dev/null
     else
         command ssh "$@"
+        #command ssh -t "$@" "cd /home/tthompson; bash --rcfile /home/tthompson/.bashrc -i"
     fi;
     }
-export -f ssh
+export -f conn
 
 # Make a directory and cd into it
 mcd () {
@@ -31,7 +32,6 @@ mcd () {
     cd $1
 }
 
-# The more of these utilities you have installed, the better this function works
 extract () {
  if [ -z "$1" ]; then
     # display usage if no parameters given
@@ -101,7 +101,7 @@ sysinfo () {
 
 # Kill a process by name. USAGE: kp program_name
 kp () {
-    ps aux | grep $1 > /dev/null
+#    ps a | grep $1 > /dev/null
     mypid=$(pidof $1)
     if [ "$mypid" != "" ]; then
         kill -9 $(pidof $1)
@@ -136,6 +136,47 @@ installed () {
         echo "Could not determine OS"
     fi
 }
+
+# Generate a password
+genpass () {
+    if [ -f "/usr/bin/pwgen" ]; then
+        pwgen -y 20
+    else
+        echo "pwgen is not installed"
+    fi
+}
+
+
+# Generate encrypted password
+genhash () {
+    rawpass=$1
+    echo -n $rawpass | makepasswd --crypt-md5 --clearfrom - | awk '{print $2}'
+}
+
+# Get the last uid from puppet
+lastuid () {
+    grep uid /home/tthompson/build/repos/hostname/devops/puppet/trunk/modules/accounts/manifests/init.pp | awk '{print $3}' | cut -d "'" -f2 | sort -n | tail -n1
+}
+
+# Put something on the clipboard
+clip () {
+    target=$1
+    echo $target | xclip -sel clipboard
+}
+
+# Recursive grep on the current directory
+crawl () {
+    target=$1
+    mypath=$2
+
+    if [ -z "$mypath" ]
+    then
+        grep -R "$target" . | grep -v grep | grep -v "pristine"
+    else
+        grep -R "$target" "$mypath" | grep -v grep | grep -v "pristine"
+    fi
+}
+
 #####################
 ### END FUNCTIONS ###
 #####################
@@ -145,14 +186,17 @@ installed () {
 ###############
 
 # ps
-alias ps="ps aux"
-alias psg="ps | grep -v grep | grep -i -e VSZ -e"
+#alias ps="ps a"
+alias psg="ps a | grep -v grep | grep -i -e VSZ -e"
+
+# ls
+alias lg="ls -l | grep -v grep | grep -i -e VSZ -e"
 
 # Search history
 alias hg="history | grep"
 
 # See if system is listening on provided port
-alias netport="netstat -lntp | grep -v grep | grep -i 'listen' | grep -i -e VSZ -e"
+alias netport="sudo netstat -lntp | grep -v grep | grep -i 'listen' | grep -i -e VSZ -e"
 
 # Get my IP address
 alias myip="curl http://ipecho.net/plain; echo"
@@ -165,3 +209,6 @@ alias back='cd "$OLDPWD"'
 
 # Update current svn repo
 alias fresh="svn up"
+
+# generate a cleartext password
+alias gimmeapass='pwgen -sy 16 1'
