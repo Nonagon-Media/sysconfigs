@@ -1,0 +1,269 @@
+set nocompatible              " be iMproved, required
+filetype off                  " required
+filetype indent plugin on
+set expandtab
+set smarttab
+set autoindent
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+" alternatively, pass a path where Vundle should install plugins
+"call vundle#begin('~/some/path/here')
+
+" let Vundle manage Vundle, required
+Plugin 'VundleVim/Vundle.vim'
+
+" ctrl-p
+Plugin 'ctrlpvim/ctrlp.vim'
+
+" NERDTree
+Plugin 'scrooloose/nerdtree'
+Plugin 'jistr/vim-nerdtree-tabs'
+
+" Vimairline status bar
+Plugin 'vim-airline/vim-airline'
+
+"Syntastic syntax checker
+Plugin 'scrooloose/syntastic'
+
+"Shellcheck
+Plugin 'koalaman/shellcheck'
+
+"Vim-surround quoting tool
+Plugin 'tpope/vim-surround'
+
+" autocompletion tool
+Plugin 'ajh17/vimcompletesme'
+
+" Hashicorp Formatting
+Plugin 'fatih/vim-hclfmt'
+
+" Whitespace fixer
+Plugin 'bronson/vim-trailing-whitespace'
+
+" Symbol comletion for () {}, etc
+Plugin 'raimondi/delimitmate'
+
+" Indent Folder
+Plugin 'tmhedberg/SimpylFold'
+
+" Hasivim terraform
+Plugin 'defenestratexp/vim-terraform'
+
+" Powerline status bar
+Plugin 'Lokaltog/powerline', {'rtp': 'powerline/bindings/vim/'}
+
+" Color solarization: 
+Plugin 'altercation/vim-colors-solarized'
+
+" The following are examples of different formats supported.
+" Keep Plugin commands between vundle#begin/end.
+" plugin on GitHub repo
+"Plugin 'tpope/vim-fugitive'
+" plugin from http://vim-scripts.org/vim/scripts.html
+"Plugin 'L9'
+" Git plugin not hosted on GitHub
+"Plugin 'git://git.wincent.com/command-t.git'
+" git repos on your local machine (i.e. when working on your own plugin)
+"Plugin 'file:///home/gmarik/path/to/plugin'
+" The sparkup vim script is in a subdirectory of this repo called vim.
+" Pass the path to set the runtimepath properly.
+"Plugin 'rstacruz/sparkup', {'rtp': 'vim/'}
+" Install L9 and avoid a Naming conflict if you've already installed a
+" different version somewhere else.
+"Plugin 'ascenator/L9', {'name': 'newL9'}
+
+" Puppet syntax
+Plugin 'ajf/puppet-vim'
+
+" All of your Plugins must be added before the following line
+call vundle#end()            " required
+filetype plugin indent on    " required
+" To ignore plugin indent changes, instead use:
+"filetype plugin on
+"
+" Brief help
+" :PluginList       - lists configured plugins
+" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
+" :PluginSearch foo - searches for foo; append `!` to refresh local cache
+" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
+"
+" see :h vundle for more details or wiki for FAQ
+" Put your non-Plugin stuff after this line
+"
+" Keybindings
+map <silent> <C-n> :NERDTreeToggle<CR>
+
+" Terraform HCL settings
+let g:hcl_fmt_autosave = 0
+let g:tf_fmt_autosave = 0
+let g:normal_fmt_autosave = 0
+
+" Enable folding
+set foldmethod=indent
+set foldlevel=99
+
+" Simpylfold Settings - fold docstrings
+let g:SimpylFold_docstring_preview=1
+
+" Tabstops
+
+" 4 space tab for PEP 8 (python)
+au BufNewFile,BufRead *.py
+    \ set filetype=python |
+    \ set tabstop=4 |
+    \ set softtabstop=4 |
+    \ set shiftwidth=4 |
+    \ set expandtab |
+    \ set autoindent |
+    \ set textwidth=79 |
+    \ set smarttab |
+    \ set fileformat=unix
+
+" 4 space tab for terraform
+au BufNewFile,BufRead *.tf
+    \ set filetype=HCL |
+    \ set tabstop=4 |
+    \ set softtabstop=4 |
+    \ set shiftwidth=4 |
+    \ set textwidth=79 |
+    \ set expandtab |
+    \ set autoindent |
+    \ set smarttab |
+    \ set fileformat=unix
+
+" 2 space tab for javascript
+au BufNewFile,BufRead *.js
+    \ set filetype=javascript |
+    \ set fileformat=unix |
+    \ set tabstop=2 |
+    \ set softtabstop=2 |
+    \ set shiftwidth=2 |
+    \ set smarttab |
+    \ set autoindent |
+    \ set expandtab
+
+" 2 space tab for html
+au BufNewFile,BufRead *.html
+    \ set filetype=html |
+    \ set fileformat=unix |
+    \ set tabstop=2 |
+    \ set softtabstop=2 |
+    \ set shiftwidth=2 |
+    \ set smarttab |
+    \ set autoindent |
+    \ set expandtab
+
+" 2 space tab for CSS
+au BufNewFile,BufRead *.css
+    \ set filetype=css |
+    \ set fileformat=unix |
+    \ set tabstop=2 |
+    \ set softtabstop=2 |
+    \ set shiftwidth=2 |
+    \ set smarttab |
+    \ set autoindent |
+    \ set expandtab
+
+" 2 space tab for perl
+au BufNewFile,BufRead *.pl
+    \ set filetype=perl |
+    \ set fileformat=unix |
+    \ set tabstop=2 |
+    \ set softtabstop=2 |
+    \ set shiftwidth=2 |
+    \ set smarttab |
+    \ set autoindent |
+    \ set expandtab
+
+" 2 space tab for puppet
+au BufNewFile,BufRead *.pp
+    \ set filetype=puppet |
+    \ set fileformat=unix |
+    \ set tabstop=2 |
+    \ set softtabstop=2 |
+    \ set shiftwidth=2 |
+    \ set smarttab |
+    \ set autoindent |
+    \ set expandtab
+
+" 2 space tab for bash
+au BufNewFile,BufRead *.sh
+    \ set filetype=bash |
+    \ set fileformat=unix |
+    \ set tabstop=2 |
+    \ set softtabstop=2 |
+    \ set shiftwidth=2 |
+    \ set smarttab |
+    \ set autoindent |
+    \ set expandtab
+
+" 2 space tab for ruby
+au BufNewFile,BufRead *.rb
+    \ set filetype=ruby |
+    \ set fileformat=unix |
+    \ set tabstop=2 |
+    \ set softtabstop=2 |
+    \ set shiftwidth=2 |
+    \ set smarttab |
+    \ set autoindent |
+    \ set expandtab
+
+" 1 space for yaml 
+au BufNewFile,BufRead *.yml
+    \ set filetype=yaml |
+    \ set tabstop=1 |
+    \ set shiftwidth=1 |
+    \ set softtabstop=1 |
+    \ set smarttab |
+    \ set autoindent |
+    \ set expandtab
+
+" Plugin Options
+"
+" vimcompletesme: complete by tag
+autocmd FileType text,markdown let b:vcm_tab_complete = 'tags'
+
+" vim-terraform
+" Let vim-terraform override default vim settings
+let g:terraform_align=1
+
+" vim-terraform sets the spacebar to fold/unfold code blocks
+let g:terraform_remap_spacebar=1
+
+" vim-terraform overrides vim's commentstring setting
+let g:terraform_commentstring='//%s'
+
+" vim-terraform automaticaly formats .tf and .tfvars files with terraform fmt
+let g:terraform_fmt_on_save=1
+
+" syntastic defaults
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+" syntastic linters
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
+let g:syntastic_checkers_python = ['pylint', 'pylint3']
+let g:syntastic_checkers_javascript = ['jslint']
+let g:syntastic_checkers_html =['tidy', 'weblint']
+let g:syntastic_checkers_css = ['stylelint']
+let g:syntastic_checkers_puppet = ['puppet-lint']
+let g:syntastic_checkers_sh = ['shellcheck']
+let g:syntastic_checkers_yaml = ['yamllint']
+
+" Python highlighting
+let python_hightlight_all=1
+syntax on
+
+" Make NERDTree ignore .pyc files
+let NERDTreeIgnore=['\.pyc$', '\~$'] "ignore files in NERDTree"
+
+" Color scheme settings for vim-colors-solarized
+syntax enable
+set background=dark
+colorscheme solarized
