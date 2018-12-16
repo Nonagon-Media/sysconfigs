@@ -13,3 +13,17 @@ bashrc_redux
         1. No more errors in any shellcheck linting
         2. conn function has been rewritten to ignore the tld and use only the value of $1 passed to it
         3. kp function has been edited to work around shellcheck's quoting standards. Double-quotes inside double-quotes
+
+        FUNCTIONS:
+                conn is an SSH-wrapper that changes your window title if you are using tmux
+                mcd creates a directory and cd's into it
+                extract uncompresses a file based on it's extention. It requires the referenced compression utility to be installed
+                comstat lists the user's 10 most-used commands
+                sysinfo displays basic system info (duh)
+                kp is a kill -9 wrapper. Kills all pids resulting from pidof $1
+                charcount counts the number of characters in a given string
+                installed checks to see if a package is installed (ubuntu/debian only)
+                genpass creates a 20-character secure password. Requires pwgen to be installed
+                genhash creates a hash of a password...but not a very strong hash. Better options exist. Requires makepasswd to work properly
+                clip takes a string and puts it in your clipboard. Requires xclip
+                crawl does a recursive grep on the current directory or a given directory

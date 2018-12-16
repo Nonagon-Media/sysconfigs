@@ -4,10 +4,6 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/hom
 #PS1="\u@\h:\w\$: "
 PS1="[\h:]\w\$: "
 
-# SSH shortcut
-#function conn { ssh_conn "$1".hostname.com; }
-#export -f conn
-
 #################
 ### FUNCTIONS ###
 #################
@@ -148,11 +144,6 @@ genpass () {
 genhash () {
     rawpass=$1
     echo -n "$rawpass" | makepasswd --crypt-md5 --clearfrom - | awk '{print $2}'
-}
-
-# Get the last uid from puppet
-lastuid () {
-    grep uid /home/tthompson/build/repos/hostname/devops/puppet/trunk/modules/accounts/manifests/init.pp | awk '{print $3}' | cut -d "'" -f2 | sort -n | tail -n1
 }
 
 # Put something on the clipboard
