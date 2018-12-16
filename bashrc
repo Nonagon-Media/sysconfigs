@@ -4,32 +4,33 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/hom
 #PS1="\u@\h:\w\$: "
 PS1="[\h:]\w\$: "
 
-# SSH shortcut
-#function conn { ssh_conn "$1".hostname.com; }
-#export -f conn
-
 #################
 ### FUNCTIONS ###
 #################
 
 # Hostname in tmux pane
+SSHEXEC=$(which ssh)
 conn() {
-    if [ "$(ps -p $(ps -p $$ -o ppid=) -o comm=)" = "tmux" ]; then
-        tmux rename-window "SERVER:$(echo $* | cut -d . -f 1).hostname.com"
-        command ssh -t "$@" "cd /home/tthompson; bash --rcfile /home/tthompson/.bashrc -i"
-        #command ssh "$@"
-        tmux set-window-option automatic-rename "on" 1>/dev/null
+    if [ -n "$TMUX" ]
+    then
+        title="SERVER:$*"
+        if [ "$1" = -t ]
+        then
+            title="$2"
+            shift 2
+        fi
+    tmux rename-window "$title"
+    "$SSHEXEC" "$@"
     else
-        command ssh "$@"
-        #command ssh -t "$@" "cd /home/tthompson; bash --rcfile /home/tthompson/.bashrc -i"
-    fi;
-    }
+        "$SSHEXEC" "$@"
+fi
+}
 export -f conn
 
 # Make a directory and cd into it
 mcd () {
-    mkdir -p $1
-    cd $1
+    mkdir -p "$1"
+    cd "$1" || exit
 }
 
 extract () {
@@ -39,11 +40,11 @@ extract () {
     echo "       extract <path/file_name_1.ext> [path/file_name_2.ext] [path/file_name_3.ext]"
     return 1
  else
-    for n in $@
+    for n in "$@"
     do
       if [ -f "$n" ] ; then
           case "${n%,}" in
-            *.tar.bz2|*.tar.gz|*.tar.xz|*.tbz2|*.tgz|*.txz|*.tar) 
+            *.tar.bz2|*.tar.gz|*.tar.xz|*.tbz2|*.tgz|*.txz|*.tar)
                          tar xvf "$n"       ;;
             *.lzma)      unlzma ./"$n"      ;;
             *.bz2)       bunzip2 ./"$n"     ;;
@@ -76,9 +77,9 @@ comstat () {
 # Basic system info
 sysinfo () {
     printf "CPU: "
-    cat /proc/cpuinfo | grep "model name" | head -1 | awk '{ for (i = 4; i <= NF; i++) printf "%s ", $i }'
+    grep "model name" /proc/cpuinfo | head -1 | awk '{ for (i = 4; i <= NF; i++) printf "%s ", $i }'
     printf "\n"a
-    cat /etc/issue | awk '{ printf "OS: %s %s %s %s | " , $1 , $2 , $3 , $4 }'
+    awk '{ printf "OS: %s %s %s %s | " , $1 , $2 , $3 , $4 }' /etc/issue
     uname -a | awk '{ printf "Kernel: %s " , $3 }'
     uname -m | awk '{ printf "%s | " , $1 }'
     printf "\n"
@@ -86,10 +87,10 @@ sysinfo () {
     printf "\n"
     printf "MEMORY: "
     free -b | grep "Mem" | awk '{print $2, $3}' > /tmp/memdata
-    while read total used
+    while read -r total used
     do
-        percent=$((200*$used/$total % 2 + 100*$used/$total))
-        total_human=$(echo $total | awk '{ byte = $1 /1024/1024**2 ; print byte "GB" }')
+        percent=$((200*used/total % 2 + 100*used/total))
+        total_human=$(echo total | awk '{ byte = $1 /1024/1024**2 ; print byte "GB" }')
         echo "$HOSTNAME is using $percent% of $total_human memory"
     done < /tmp/memdata
     rm -rf /tmp/memdata
@@ -101,11 +102,14 @@ sysinfo () {
 
 # Kill a process by name. USAGE: kp program_name
 kp () {
-#    ps a | grep $1 > /dev/null
-    mypid=$(pidof $1)
+    process="$1"
+    mypidfile="/tmp/killpidfile"
+    pidof "$process" > "$mypidfile"
+    mypid=$(head -1 /tmp/killpidfile)
     if [ "$mypid" != "" ]; then
-        kill -9 $(pidof $1)
-        if [[ "$?" == "0" ]]; then
+        kill -9 "$mypid"
+        kill_exit=$?
+        if [[ "$kill_exit" == "0" ]]; then
             echo "PID $mypid ($1) killed."
         fi
     else
@@ -123,18 +127,7 @@ charcount () {
 # See if package is installed
 installed () {
     package=$1
-    rhel="rhel"
-    redhat="redhat"
-    ubuntu="ubuntu"
-    if grep -qF "$rhel" /etc/os-release;then
-        sudo yum list installed "$package"
-    elif grep -qF -i "$redhat" /etc/os-release;then
-        sudo yum list installed "$package"
-    elif grep -qF -i "$ubuntu" /etc/os-release;then
-        sudo dpkg -l | grep -i "$package"
-    else
-        echo "Could not determine OS"
-    fi
+    sudo dpkg -l | grep -i "$package"
 }
 
 # Generate a password
@@ -150,18 +143,13 @@ genpass () {
 # Generate encrypted password
 genhash () {
     rawpass=$1
-    echo -n $rawpass | makepasswd --crypt-md5 --clearfrom - | awk '{print $2}'
-}
-
-# Get the last uid from puppet
-lastuid () {
-    grep uid /home/tthompson/build/repos/hostname/devops/puppet/trunk/modules/accounts/manifests/init.pp | awk '{print $3}' | cut -d "'" -f2 | sort -n | tail -n1
+    echo -n "$rawpass" | makepasswd --crypt-md5 --clearfrom - | awk '{print $2}'
 }
 
 # Put something on the clipboard
 clip () {
     target=$1
-    echo $target | xclip -sel clipboard
+    echo "$target" | xclip -sel clipboard
 }
 
 # Recursive grep on the current directory
