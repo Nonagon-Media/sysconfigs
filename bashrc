@@ -200,3 +200,8 @@ alias fresh="svn up"
 
 # generate a cleartext password
 alias gimmeapass='pwgen -sy 16 1'
+
+# KEYCHAIN
+if [ -f $HOME/.mykeychain ]; then
+        . $HOME/.mykeychain
+fi
