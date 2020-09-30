@@ -2,17 +2,21 @@
 # Must be called before `initialize_session`.
 #session_root "~/Projects/devops"
 
+# Variable for session name
+sn="devops"
+
 # Create session with specified name if it does not already exist. If no
 # argument is given, session name will be based on layout file name.
 if initialize_session "devops"; then
 
   new_window "$HOSTNAME"
   new_window "INSTALLATIONS"
-  if [ ! command -v scrcpy &> /dev/nul ]; then
-    echo "scrcpy not installed"
-  else
-    new_window "EXECUTE:scrcpy"
-  fi
+  new_window "ANSIBLE"
+  tmux select-window -t "$sn:3"
+  tmux send-keys 'source $HOME/.virtualenvs/ansible/bin/activate' C-m
+  new_window "DOCKER"
+  select_window 1
+
 
   # Create a new window inline within session layout definition.
   #new_window "misc"
