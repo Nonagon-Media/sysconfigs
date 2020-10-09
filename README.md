@@ -13,6 +13,7 @@ bashrc_redux
         1. No more errors in any shellcheck linting
         2. conn function has been rewritten to ignore the tld and use only the value of $1 passed to it
         3. kp function has been edited to work around shellcheck's quoting standards. Double-quotes inside double-quotes
+        4. After cloning add a line to the existing bashrc to source the settings in the one in this repo
 
         FUNCTIONS:
                 conn is an SSH-wrapper that changes your window title if you are using tmux

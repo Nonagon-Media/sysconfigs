@@ -1,0 +1,66 @@
+Host	*
+	ServerAliveInterval	30
+	ServerAliveCountMax	120
+
+#################
+### AWS HOSTS ###
+#################
+
+Host    n9n-bastion
+    HostName        34.208.30.232
+    User            ubuntu
+    IdentityFile    /home/sthompson/.ssh/n9n-operations.pem
+    ForwardAgent    yes
+
+Host 	n9n-chef-server
+    HostName 	    n9n-chef-server
+    User 	    tthompson
+    IdentityFile    ~/.ssh/
+
+################
+### WSRIXNET ###
+################
+
+Host    archive
+    HostName        10.0.0.167 
+    User            tthompson
+    IdentityFile    /home/tthompson/.ssh/silverbox
+
+Host    satellite
+    HostName        10.0.0.133
+    User            tthompson
+    IdentityFile    /home/tthompson/.ssh/silverbox
+
+Host    studiobox
+    HostName        10.0.0.6
+    User            tthompson
+    IdentityFile    /home/tthompson/.ssh/silverbox
+
+Host 	mediabox
+    HostName 	    10.0.0.76
+    User 	        tthompson
+    IdentityFile    /home/tthompson/.ssh/silverbox
+
+####################
+### DIGITALOCEAN ###
+####################
+
+host    pw
+    HostName        pw.nonagonmedia.net
+    User            silverbox
+    IdentityFile    ~/.ssh/silverbox
+
+host    containers
+    HostName        containers.nonagonmedia.net
+    User            tthompson
+    IdentityFile    ~/.ssh/silverbox
+
+host    resume
+    HostName        resume.nonagonmedia.net
+    User            tthompson
+    IdentityFile    ~/.ssh/silverbox
+
+host    tech
+    HostName        tech.nonagonmedia.net
+    User            tthompson
+    IdentityFile    ~/.ssh/silverbox

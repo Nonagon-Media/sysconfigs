@@ -1,8 +1,9 @@
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/home/tthompson/bin
 
 # Prompt
-#PS1="\u@\h:\w\$: "
-PS1="[\h:]\w\$: "
+# If this is sourced from bashrc in the repo, it overwrites $HOME/.bashrc
+# green user@host blue DIR: current working dir ...everything after is white 
+export PS1="\e[0;32m[\u@\h] \e[0;34mDIR: \W\033[00m\] $: "
 
 #################
 ### FUNCTIONS ###
@@ -205,3 +206,11 @@ alias gimmeapass='pwgen -sy 16 1'
 if [ -f $HOME/.mykeychain ]; then
         . $HOME/.mykeychain
 fi
+
+# VIRTUALENV
+export WORKON_HOME=$HOME/.virtualenvs
+export PROJECT_HOME=$HOME/build/venv_projects
+export PATH=/usr/local/bin:$PATH
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
+export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
+source /usr/local/bin/virtualenvwrapper.sh
