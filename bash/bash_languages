@@ -1,1 +1,16 @@
 # Language-specific features get sourced from this file
+
+# RUBY
+if [ -d "/home/tthompson/.rbenv/bin" ]; then
+	export PATH=$PATH:$HOME/.rbenv/bin
+fi
+
+if [ -d "/home/tthompson/.rbenv/shims" ]; then
+	export PATH=$PATH:$HOME/.rbenv/shims
+fi
+
+if [ ! command -v rbenv &> /dev/null ]; then
+	echo "not installed...skipping" >> /dev/null
+else
+	eval "$(rbenv init -)"
+fi
