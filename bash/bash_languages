@@ -1,11 +1,14 @@
 # Language-specific features get sourced from this file
 
-# RUBY
-if [ -d "/home/tthompson/.rbenv/bin" ]; then
+############
+### RUBY ###
+############
+
+if [ -d "$HOME/.rbenv/bin" ]; then
 	export PATH=$PATH:$HOME/.rbenv/bin
 fi
 
-if [ -d "/home/tthompson/.rbenv/shims" ]; then
+if [ -d "$HOME/.rbenv/shims" ]; then
 	export PATH=$PATH:$HOME/.rbenv/shims
 fi
 
@@ -13,4 +16,17 @@ if [ ! command -v rbenv &> /dev/null ]; then
 	echo "not installed...skipping" >> /dev/null
 else
 	eval "$(rbenv init -)"
+fi
+
+#########################
+### PYTHON/VIRTUALENV ###
+#########################
+
+if [ -d "$HOME/.virtualenvs" ]; then
+	export WORKON_HOME=$HOME/.virtualenvs
+	export PROJECT_HOME=$HOME/build/venv_projects
+	export PATH=/usr/local/bin:$PATH
+	export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
+	export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
+	source /usr/local/bin/virtualenvwrapper.sh
 fi
