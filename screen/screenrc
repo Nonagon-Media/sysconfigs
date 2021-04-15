@@ -9,7 +9,7 @@ shelltitle “Shell”
 defscrollback 5024
 
 # Change windown numbering. Starts at 1 instead of 0
-bind c screen 1
+bind c screen 2
 bind 0 select 10
 escape ^aa
 
