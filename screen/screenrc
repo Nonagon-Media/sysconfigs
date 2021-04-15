@@ -1,0 +1,52 @@
+#FILE: .screenrc
+
+startup_message off
+vbell off
+
+hardstatus alwayslastline “%{=b}%{G} %{b}%w %=%{kG}%C%A %D,%d/%m/%y”
+shelltitle “Shell”
+
+defscrollback 5024
+
+# Change windown numbering. Starts at 1 instead of 0
+bind c screen 1
+bind 0 select 10
+escape ^aa
+
+# Appearance
+caption always “%{= 2m}%{+b w}Screen: %n | %h %=%t %D %d/%m/%y %c:%s”
+hardstatus alwayslastline “%-Lw%{= BW}%50>%n%f* %t%{-}%+Lw%<  %=% [%{=b)%{Y}%l%{g}]”
+
+# Our warning of activity
+activity “Activity in %t(%n)”
+
+# Left Right meta key mods
+#ALT-,. and ALT-<>
+bindkey “^[<“ eval number !echo $WINDOW-1|bc
+bindkey “^[>” eval number !echo $WINDOW+1|bc
+bindkey “^[,” prev
+bindkey “^[.” next
+
+select 1
+
+autodetach      on
+
+# pgup pgdown
+termcapinfo xterm*|rxvt* ‘ti@:te@’
+
+# Having this command in your .screenrc would bind the key sequence
+# C-a R’ to the `su’ command and give it an auto-title name of `root:’.
+bind R screen -t ‘% |root:’ sudo bash
+
+bind ‘K’ kill
+
+msgwait 15
+
+# termcap stuff
+#termcapinfo xterm     ti@:te@
+# make the cursor show up in red:
+#termcapinfo linux “ve=\E[?25h\E[?17;0;64c”
+
+bind = resize =
+bind + resize +1
+bind – resize -1
