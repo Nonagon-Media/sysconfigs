@@ -196,21 +196,23 @@ alias df="df -h"
 # Back to the previous directory
 alias back='cd "$OLDPWD"'
 
-# Update current svn repo
-alias fresh="svn up"
-
 # generate a cleartext password
 alias gimmeapass='pwgen -sy 16 1'
+
+################### 
+### END ALIASES ###
+################### 
+
+#############################
+### OTHER CONFIG SOURCING ###
+#############################
 
 # KEYCHAIN
 if [ -f $HOME/.mykeychain ]; then
         . $HOME/.mykeychain
 fi
 
-# VIRTUALENV
-export WORKON_HOME=$HOME/.virtualenvs
-export PROJECT_HOME=$HOME/build/venv_projects
-export PATH=/usr/local/bin:$PATH
-export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
-export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
-source /usr/local/bin/virtualenvwrapper.sh
+# Include language-specific file
+if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_languages ]; then
+    . $HOME/build/repos/mine/sysconfigs/bash/bash_languages
+fi
