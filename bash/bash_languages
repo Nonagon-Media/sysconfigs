@@ -30,3 +30,18 @@ if [ -d "$HOME/.virtualenvs" ]; then
 	export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
 	source /usr/local/bin/virtualenvwrapper.sh
 fi
+
+##########
+### GO ###
+##########
+
+if [ -d "/usr/local/go" ]; then
+	# GOPATH - tell go where to find code
+	export GOPATH=$HOME/build/go
+
+	# Workspace bin
+	export PATH=$PATH:$GOPATH/bin
+	
+	# Default location of the go binary
+	export PATH=$PATH:/usr/local/go/bin
+fi
