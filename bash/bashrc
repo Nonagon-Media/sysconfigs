@@ -216,3 +216,8 @@ fi
 if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_languages ]; then
     . $HOME/build/repos/mine/sysconfigs/bash/bash_languages
 fi
+
+###############
+### AWS ECR ###
+###############
+export ECRN9N="978412993113.dkr.ecr.us-west-2.amazonaws.com/n9n"
