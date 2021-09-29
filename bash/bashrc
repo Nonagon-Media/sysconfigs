@@ -217,6 +217,11 @@ if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_languages ]; then
     . $HOME/build/repos/mine/sysconfigs/bash/bash_languages
 fi
 
+# Include utilty-specific file
+if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_utilities ]; then
+    . $HOME/build/repos/mine/sysconfigs/bash/bash_utilities
+fi
+
 ###############
 ### AWS ECR ###
 ###############
