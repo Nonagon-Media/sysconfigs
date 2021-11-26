@@ -226,3 +226,5 @@ fi
 ### AWS ECR ###
 ###############
 export ECRN9N="978412993113.dkr.ecr.us-west-2.amazonaws.com"
+
+complete -C /usr/bin/terraform terraform
