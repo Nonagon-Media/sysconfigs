@@ -24,7 +24,7 @@ setdocker() {
     esac
 
     # Restart the local daemon
-    sudo systemctl daemon-reloaded
+    sudo systemctl daemon-reload
     sudo systemctl restart docker
 
 }
