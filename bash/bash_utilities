@@ -3,3 +3,28 @@
 if [ -f /usr/bin/direnv ]; then
     eval "$(direnv hook bash)"
 fi
+
+# Choose docker environment
+setdocker() {
+    destination=$1
+
+    # Choose docker host
+    case $destination in
+        # Use the local lab server
+        lab)
+            export DOCKER_HOST=ssh://tthompson@lab
+            ;;
+        # Use the containers server in DigitalOcean
+        containers)
+            export DOCKER_HOST=ssh://tthompson@containers
+            ;;
+        # Any other response sets docker to use localhost
+        *)
+            unset DOCKER_HOST
+    esac
+
+    # Restart the local daemon
+    sudo systemctl daemon-reloaded
+    sudo systemctl restart docker
+
+}
