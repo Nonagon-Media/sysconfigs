@@ -12,6 +12,12 @@ if [ -d "$HOME/.rbenv/shims" ]; then
 	export PATH=$PATH:$HOME/.rbenv/shims
 fi
 
+if [ -f "$HOME/.gemrc" ]; then
+	echo "Found gemrc"
+else
+	echo "gem: --no-document" > ~/.gemrc
+fi
+
 if [ ! command -v rbenv &> /dev/null ]; then
 	echo "not installed...skipping" >> /dev/null
 else
@@ -41,7 +47,7 @@ if [ -d "/usr/local/go" ]; then
 
 	# Workspace bin
 	export PATH=$PATH:$GOPATH/bin
-	
+
 	# Default location of the go binary
 	export PATH=$PATH:/usr/local/go/bin
 fi
