@@ -2,7 +2,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/hom
 
 # Prompt
 # If this is sourced from bashrc in the repo, it overwrites $HOME/.bashrc
-# green user@host blue DIR: current working dir ...everything after is white 
+# green user@host blue DIR: current working dir ...everything after is white
 export PS1="\e[0;32m[\u@\h] \e[0;34mDIR: \W\033[00m\] $: "
 
 #################
@@ -147,6 +147,10 @@ genhash () {
     echo -n "$rawpass" | makepasswd --crypt-md5 --clearfrom - | awk '{print $2}'
 }
 
+gensha () {
+    mkpasswd -m sha-256
+}
+
 # Put something on the clipboard
 clip () {
     target=$1
@@ -199,9 +203,9 @@ alias back='cd "$OLDPWD"'
 # generate a cleartext password
 alias gimmeapass='pwgen -sy 16 1'
 
-################### 
+###################
 ### END ALIASES ###
-################### 
+###################
 
 #############################
 ### OTHER CONFIG SOURCING ###
