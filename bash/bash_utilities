@@ -12,7 +12,11 @@ setdocker() {
     case $destination in
         # Use the local lab server
         lab)
-            export DOCKER_HOST=ssh://tthompson@lab
+            export DOCKER_HOST=ssh://tthompson@techlab
+            ;;
+        # Use k8s server
+        k8s)
+            export DOCKER_HOST=ssh://tthompson@k8slab
             ;;
         # Use the containers server in DigitalOcean
         containers)
@@ -28,3 +32,12 @@ setdocker() {
     sudo systemctl restart docker
 
 }
+
+# Alacritty
+if [ -f /usr/local/bin/alacritty ]; then
+    mkdir -p $HOME/.bash_completion
+    cp $HOME/build/packages/alacritty/alacritty/extra/completions/alacritty.bash $HOME/.bash_completion/alacritty
+    source $HOME/.bash_completion/alacritty
+else
+    echo "alacritty not installed"
+fi
