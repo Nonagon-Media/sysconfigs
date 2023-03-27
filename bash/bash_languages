@@ -51,3 +51,11 @@ if [ -d "/usr/local/go" ]; then
 	# Default location of the go binary
 	export PATH=$PATH:/usr/local/go/bin
 fi
+
+############################
+### RUST (for alacritty) ###
+############################
+
+if [ -d "$HOME/.cargo" ]; then
+	source "$HOME/.cargo/env
+fi
