@@ -41,3 +41,8 @@ if [ -f /usr/local/bin/alacritty ]; then
 else
     echo "alacritty not installed"
 fi
+
+if [ -d /opt/nvim-linux64 ]; then
+	export PATH="$PATH:/opt/nvim-linux64/bin"
+	alias vim='nvim'
+fi
