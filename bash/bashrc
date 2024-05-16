@@ -148,7 +148,7 @@ genhash () {
 }
 
 gensha () {
-    mkpasswd -m sha-256
+    mkpasswd -m sha-512
 }
 
 # Put something on the clipboard
