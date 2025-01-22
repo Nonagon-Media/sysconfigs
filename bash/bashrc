@@ -226,6 +226,11 @@ if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_utilities ]; then
     . $HOME/build/repos/mine/sysconfigs/bash/bash_utilities
 fi
 
+# Include CI/CD Pipeline aliases
+if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_pipeline ]; then
+    . $HOME/build/repos/mine/sysconfigs/bash/bash_pipeline
+fi
+
 ###############
 ### AWS ECR ###
 ###############

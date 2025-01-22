@@ -1,0 +1,4 @@
+alias modelcule="docker run --rm -it \
+    -v /home/tthompson/build/repos/mine/n9n-awx-ansible:/workspace \
+    -w /workspace \
+    geoffreyvanwyk/docker-ubuntu2204-ansible molecule"
