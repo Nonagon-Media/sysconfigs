@@ -1,9 +1,11 @@
 # Language-specific features get sourced from this file
 
+echo "Check bash_languages file"
 ############
 ### RUBY ###
 ############
 
+echo "Ruby config..."
 if [ -d "$HOME/.rbenv/bin" ]; then
 	export PATH=$PATH:$HOME/.rbenv/bin
 fi
@@ -28,6 +30,7 @@ fi
 ### PYTHON/VIRTUALENV ###
 #########################
 
+echo "Python virtualenv config..."
 if [ -d "$HOME/.virtualenvs" ]; then
 	export WORKON_HOME=$HOME/.virtualenvs
 	export PROJECT_HOME=$HOME/build/venv_projects
@@ -41,6 +44,7 @@ fi
 ### GO ###
 ##########
 
+echo "Golang config ..."
 if [ -d "/usr/local/go" ]; then
 	# GOPATH - tell go where to find code
 	export GOPATH=$HOME/build/go
@@ -56,9 +60,9 @@ fi
 ### RUST (for alacritty) ###
 ############################
 
-if [ -d "$HOME/.cargo" ]; then
-	source $HOME/.cargo/env
-	source $HOME/build/repos/third-party/alacritty/extra/completions/alacritty.bash
+if [ -d "$HOME/.cargo" ] && [ -d "$HOME/build/repos/third-party/alacritty" ]; then
+	source "$HOME/.cargo/env"
+        source "$HOME/build/repos/third-party/alacritty/extra/completions/alacritty.bash"
 fi
 
 ################
