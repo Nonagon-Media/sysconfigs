@@ -1,4 +1,7 @@
-alias modelcule="docker run --rm -it \
-    -v /home/tthompson/build/repos/mine/n9n-awx-ansible:/workspace \
+alias molecule="docker run --rm -it \
+    -v \$(pwd):/workspace \
     -w /workspace \
-    geoffreyvanwyk/docker-ubuntu2204-ansible molecule"
+    defenestratexp/ansible-molecule-alpine molecule"
+
+alias fixmolecule="sudo chown -R \$(id -u):\$(id -g) \$(pwd)"
+

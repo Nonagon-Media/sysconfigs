@@ -203,6 +203,16 @@ alias back='cd "$OLDPWD"'
 # generate a cleartext password
 alias gimmeapass='pwgen -sy 16 1'
 
+# generate a SHA-512 hash
+alias gimmeahash='function _gimmeahash() {
+  if [ -z "$1" ]; then
+    echo "Usage: gimmeahash <password>"
+    return 1
+  fi
+  docker run --rm alpine sh -c "apk add --no-cache openssl > /dev/null && openssl passwd -6 \"$1\""
+}; _gimmeahash'
+
+
 ###################
 ### END ALIASES ###
 ###################
@@ -229,6 +239,11 @@ fi
 # Include CI/CD Pipeline aliases
 if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_pipeline ]; then
     . $HOME/build/repos/mine/sysconfigs/bash/bash_pipeline
+fi
+
+# Add $HOME/.local/bin to PATH
+if [ -d $HOME/.local/bin ]; then
+	export PATH="$HOME/.local/bin:$PATH"
 fi
 
 ###############
