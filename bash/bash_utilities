@@ -36,10 +36,20 @@ setdocker() {
 }
 
 # Alacritty
-if [ -f /usr/local/bin/alacritty ]; then
-    mkdir -p $HOME/.bash_completion
-    cp $HOME/build/packages/alacritty/alacritty/extra/completions/alacritty.bash $HOME/.bash_completion/alacritty
-    source $HOME/.bash_completion/alacritty
+ALACRITTY_BIN="$(command -v alacritty)"
+
+if [ -n "$ALACRITTY_BIN" ]; then
+    mkdir -p "$HOME/.bash_completion"
+
+    # Try to use completions from manual build path first
+    if [ -f "$HOME/build/packages/alacritty/alacritty/extra/completions/alacritty.bash" ]; then
+        cp "$HOME/build/packages/alacritty/alacritty/extra/completions/alacritty.bash" "$HOME/.bash_completion/alacritty"
+        source "$HOME/.bash_completion/alacritty"
+    elif [ -f "/usr/share/bash-completion/completions/alacritty" ]; then
+        source "/usr/share/bash-completion/completions/alacritty"
+    else
+        echo "No Alacritty completion file found."
+    fi
 else
     echo "alacritty not installed"
 fi
