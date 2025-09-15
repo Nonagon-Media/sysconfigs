@@ -77,25 +77,53 @@ comstat () {
 
 # Basic system info
 sysinfo () {
-    printf "CPU: "
-    grep "model name" /proc/cpuinfo | head -1 | awk '{ for (i = 4; i <= NF; i++) printf "%s ", $i }'
-    printf "\n"a
-    awk '{ printf "OS: %s %s %s %s | " , $1 , $2 , $3 , $4 }' /etc/issue
-    uname -a | awk '{ printf "Kernel: %s " , $3 }'
-    uname -m | awk '{ printf "%s | " , $1 }'
-    printf "\n"
-    uptime | awk '{ printf "Uptime: %s %s %s", $3, $4, $5 }' | sed 's/,//g'
-    printf "\n"
-    printf "MEMORY: "
-    free -b | grep "Mem" | awk '{print $2, $3}' > /tmp/memdata
-    while read -r total used
-    do
-        percent=$((200*used/total % 2 + 100*used/total))
-        total_human=$(echo total | awk '{ byte = $1 /1024/1024**2 ; print byte "GB" }')
-        echo "$HOSTNAME is using $percent% of $total_human memory"
-    done < /tmp/memdata
-    rm -rf /tmp/memdata
-    printf "\n"
+    case "$(uname -s)" in
+        Linux*)
+            printf "CPU: "
+            grep "model name" /proc/cpuinfo | head -1 | awk '{ for (i = 4; i <= NF; i++) printf "%s ", $i }'
+            printf "\n"
+            awk '{ printf "OS: %s %s %s %s | " , $1 , $2 , $3 , $4 }' /etc/issue
+            uname -a | awk '{ printf "Kernel: %s " , $3 }'
+            uname -m | awk '{ printf "%s | " , $1 }'
+            printf "\n"
+            uptime | awk '{ printf "Uptime: %s %s %s", $3, $4, $5 }' | sed 's/,//g'
+            printf "\n"
+            printf "MEMORY: "
+            memdata=$(mktemp)
+            free -b | grep "Mem" | awk '{print $2, $3}' > "$memdata"
+            while read -r total used
+            do
+                percent=$((200*used/total % 2 + 100*used/total))
+                total_human=$(echo "$total" | awk '{ byte = $1 /1024/1024/1024 ; print byte "GB" }')
+                echo "$HOSTNAME is using $percent% of $total_human memory"
+            done < "$memdata"
+            rm -f "$memdata"
+            printf "\n"
+            ;;
+        Darwin*)
+            printf "CPU: "
+            sysctl -n machdep.cpu.brand_string
+            printf "\n"
+            printf "OS: "
+            sw_vers -productName && sw_vers -productVersion
+            uname -a | awk '{ printf "Kernel: %s " , $3 }'
+            uname -m | awk '{ printf "%s | " , $1 }'
+            printf "\n"
+            uptime | awk '{ printf "Uptime: %s %s %s", $3, $4, $5 }' | sed 's/,//g'
+            printf "\n"
+            printf "MEMORY: "
+            total_bytes=$(sysctl -n hw.memsize)
+            used_bytes=$(vm_stat | grep "Pages active:" | awk '{print $3}' | sed 's/\.//')
+            used_bytes=$((used_bytes * 4096))
+            percent=$((200*used_bytes/total_bytes % 2 + 100*used_bytes/total_bytes))
+            total_gb=$((total_bytes / 1024 / 1024 / 1024))
+            echo "$HOSTNAME is using $percent% of ${total_gb}GB memory"
+            printf "\n"
+            ;;
+        *)
+            echo "Unsupported OS: $(uname -s)"
+            ;;
+    esac
     printf "DISK: "
     printf "\n"
     df -h
@@ -103,20 +131,38 @@ sysinfo () {
 
 # Kill a process by name. USAGE: kp program_name
 kp () {
-    process="$1"
-    mypidfile="/tmp/killpidfile"
-    pidof "$process" > "$mypidfile"
-    mypid=$(head -1 /tmp/killpidfile)
-    if [ "$mypid" != "" ]; then
-        kill -9 "$mypid"
-        kill_exit=$?
-        if [[ "$kill_exit" == "0" ]]; then
-            echo "PID $mypid ($1) killed."
+    local process="$1"
+
+    if [[ -z "$process" ]]; then
+        echo "Usage: kp <process_name>"
+        return 1
+    fi
+
+    local mypidfile
+    mypidfile=$(mktemp)
+    trap 'rm -f "$mypidfile"' EXIT
+
+    if command -v pidof >/dev/null 2>&1; then
+        pidof "$process" > "$mypidfile" 2>/dev/null
+    else
+        # macOS fallback using pgrep
+        pgrep "$process" > "$mypidfile" 2>/dev/null
+    fi
+
+    local mypid
+    mypid=$(head -1 "$mypidfile")
+
+    if [[ -n "$mypid" ]]; then
+        if kill -9 "$mypid" 2>/dev/null; then
+            echo "PID $mypid ($process) killed."
+        else
+            echo "Failed to kill PID $mypid ($process)."
+            return 1
         fi
     else
-        echo "None killed."
+        echo "No process named '$process' found."
+        return 1
     fi
-    return;
 }
 
 # Count the number of characters in a string
@@ -189,10 +235,22 @@ alias lg="ls -l | grep -v grep | grep -i -e VSZ -e"
 alias hg="history | grep"
 
 # See if system is listening on provided port
-alias netport="sudo netstat -lntp | grep -v grep | grep -i 'listen' | grep -i -e VSZ -e"
+alias netport='
+if command -v ss >/dev/null 2>&1; then
+    ss -tlnp | grep LISTEN
+else
+    case "$(uname -s)" in
+        Darwin*)
+            netstat -an | grep LISTEN
+            ;;
+        *)
+            sudo netstat -lntp | grep -i listen
+            ;;
+    esac
+fi'
 
 # Get my IP address
-alias myip="curl http://ipecho.net/plain; echo"
+alias myip="curl -s https://ipinfo.io/ip 2>/dev/null || curl -s http://ipecho.net/plain 2>/dev/null || echo 'Unable to get IP'"
 
 # df -h shortcut
 alias df="df -h"
@@ -252,3 +310,7 @@ fi
 export ECRN9N="978412993113.dkr.ecr.us-west-2.amazonaws.com"
 
 complete -C /usr/bin/terraform terraform
+
+if command -v direnv >/dev/null 2>&1; then
+    eval "$(direnv hook bash)"
+fi
