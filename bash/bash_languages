@@ -20,10 +20,10 @@ else
 	echo "gem: --no-document" > ~/.gemrc
 fi
 
-if [ ! command -v rbenv &> /dev/null ]; then
-	echo "not installed...skipping" >> /dev/null
-else
+if command -v rbenv &> /dev/null; then
 	eval "$(rbenv init -)"
+else
+	echo "rbenv not installed...skipping" >> /dev/null
 fi
 
 #########################

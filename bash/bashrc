@@ -289,6 +289,11 @@ if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_languages ]; then
     . $HOME/build/repos/mine/sysconfigs/bash/bash_languages
 fi
 
+# Add Homebrew to PATH (needed before utilities check for tools)
+if [ -d "/opt/homebrew/bin" ]; then
+    export PATH="/opt/homebrew/bin:$PATH"
+fi
+
 # Include utilty-specific file
 if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_utilities ]; then
     . $HOME/build/repos/mine/sysconfigs/bash/bash_utilities
