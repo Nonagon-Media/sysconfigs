@@ -1,0 +1,234 @@
+#!/bin/bash
+# claude-tail - Monitor Claude Code activity in real-time
+# Shows WHY (rationale), WHAT (tool/command), and OUTPUT
+#
+# Usage: claude-tail [options]
+#   -n NUM    Show last NUM tool calls (default: 10)
+#   -f        Follow mode (continuous, default)
+#   --debug   Show raw JSON for debugging
+#   -h        Show help
+
+set -e
+
+CLAUDE_LOG_DIR="$HOME/.claude/projects"
+
+# Colors (matching our simple style)
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+GRAY='\033[0;90m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# Defaults
+FOLLOW=true
+LAST_N=10
+DEBUG=false
+
+# State tracking for correlating text with tool calls
+LAST_TEXT=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -n)
+            LAST_N="$2"
+            shift 2
+            ;;
+        -f)
+            FOLLOW=true
+            shift
+            ;;
+        --no-follow)
+            FOLLOW=false
+            shift
+            ;;
+        --debug)
+            DEBUG=true
+            shift
+            ;;
+        -h|--help)
+            echo "claude-tail - Monitor Claude Code activity in real-time"
+            echo ""
+            echo "Usage: claude-tail [options]"
+            echo "  -n NUM      Show last NUM tool calls (default: 10)"
+            echo "  -f          Follow mode - continuous (default)"
+            echo "  --no-follow Show recent entries and exit"
+            echo "  --debug     Show raw JSON for debugging"
+            echo "  -h          Show this help"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+find_latest_log() {
+    find "$CLAUDE_LOG_DIR" -name "*.jsonl" -type f -exec ls -t {} + 2>/dev/null | head -1
+}
+
+process_line() {
+    local line="$1"
+
+    [[ -z "$line" ]] && return
+
+    if ! echo "$line" | jq -e . >/dev/null 2>&1; then
+        return
+    fi
+
+    if [[ "$DEBUG" == "true" ]]; then
+        echo "$line" | jq .
+        return
+    fi
+
+    local role=$(echo "$line" | jq -r '.message.role // ""')
+    local timestamp=$(echo "$line" | jq -r '.timestamp // ""' | cut -d'T' -f2 | cut -d'.' -f1)
+
+    # Check content types
+    local has_text=$(echo "$line" | jq -r '.message.content[]? | select(.type == "text") | .type' 2>/dev/null | head -1)
+    local has_tool_use=$(echo "$line" | jq -r '.message.content[]? | select(.type == "tool_use") | .type' 2>/dev/null | head -1)
+    local has_tool_result=$(echo "$line" | jq -r '.message.content[]? | select(.type == "tool_result") | .type' 2>/dev/null | head -1)
+
+    # Assistant text message - save as rationale for next tool call
+    if [[ "$role" == "assistant" && "$has_text" == "text" ]]; then
+        LAST_TEXT=$(echo "$line" | jq -r '.message.content[] | select(.type == "text") | .text' 2>/dev/null | head -c 500)
+    fi
+
+    # Assistant tool_use - this is Claude calling a tool
+    if [[ "$role" == "assistant" && "$has_tool_use" == "tool_use" ]]; then
+        local tool_name=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .name' 2>/dev/null | head -1)
+        local tool_id=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .id' 2>/dev/null | head -1)
+
+        echo ""
+        echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}${BLUE}[$timestamp]${NC} ${BOLD}${GREEN}Tool: $tool_name${NC}"
+
+        # Show rationale if we have preceding text
+        if [[ -n "$LAST_TEXT" ]]; then
+            echo -e "${YELLOW}WHY:${NC}"
+            echo -e "${GRAY}$LAST_TEXT${NC}"
+            echo ""
+            LAST_TEXT=""
+        fi
+
+        # Show command/action details based on tool type
+        case "$tool_name" in
+            Bash)
+                local cmd=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.command // ""' 2>/dev/null)
+                local desc=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.description // ""' 2>/dev/null)
+                if [[ -n "$desc" ]]; then
+                    echo -e "${YELLOW}DESCRIPTION:${NC} $desc"
+                fi
+                echo -e "${YELLOW}COMMAND:${NC}"
+                echo -e "${GRAY}$cmd${NC}"
+                ;;
+            Read)
+                local file=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.file_path // ""' 2>/dev/null)
+                echo -e "${YELLOW}READING:${NC} $file"
+                ;;
+            Write)
+                local file=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.file_path // ""' 2>/dev/null)
+                echo -e "${YELLOW}WRITING:${NC} $file"
+                ;;
+            Edit)
+                local file=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.file_path // ""' 2>/dev/null)
+                echo -e "${YELLOW}EDITING:${NC} $file"
+                ;;
+            Glob)
+                local pattern=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.pattern // ""' 2>/dev/null)
+                local path=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.path // "."' 2>/dev/null)
+                echo -e "${YELLOW}GLOB:${NC} $pattern in $path"
+                ;;
+            Grep)
+                local pattern=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.pattern // ""' 2>/dev/null)
+                local path=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.path // "."' 2>/dev/null)
+                echo -e "${YELLOW}GREP:${NC} '$pattern' in $path"
+                ;;
+            Task)
+                local desc=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.description // ""' 2>/dev/null)
+                local subagent=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.subagent_type // ""' 2>/dev/null)
+                echo -e "${YELLOW}SUBAGENT:${NC} $subagent"
+                echo -e "${YELLOW}TASK:${NC} $desc"
+                ;;
+            TodoWrite)
+                echo -e "${YELLOW}ACTION:${NC} Updating todo list"
+                ;;
+            WebSearch)
+                local query=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.query // ""' 2>/dev/null)
+                echo -e "${YELLOW}SEARCHING:${NC} $query"
+                ;;
+            WebFetch)
+                local url=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_use") | .input.url // ""' 2>/dev/null)
+                echo -e "${YELLOW}FETCHING:${NC} $url"
+                ;;
+            *)
+                local input=$(echo "$line" | jq -c '.message.content[] | select(.type == "tool_use") | .input // {}' 2>/dev/null)
+                echo -e "${YELLOW}INPUT:${NC} $input"
+                ;;
+        esac
+
+        # Store tool_id for matching with result
+        echo "$tool_id" > /tmp/claude-tail-last-tool-id 2>/dev/null || true
+    fi
+
+    # Tool result - show output
+    if [[ "$has_tool_result" == "tool_result" ]]; then
+        local content=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_result") | .content // ""' 2>/dev/null)
+        local is_error=$(echo "$line" | jq -r '.message.content[] | select(.type == "tool_result") | .is_error // false' 2>/dev/null)
+
+        if [[ "$is_error" == "true" ]]; then
+            echo -e "${BOLD}${RED}OUTPUT (ERROR):${NC}"
+        else
+            echo -e "${YELLOW}OUTPUT:${NC}"
+        fi
+
+        # Truncate long outputs
+        local line_count=$(echo "$content" | wc -l)
+        if [[ $line_count -gt 30 ]]; then
+            echo -e "${GRAY}$(echo "$content" | head -15)${NC}"
+            echo -e "${YELLOW}... ($line_count lines total, truncated) ...${NC}"
+            echo -e "${GRAY}$(echo "$content" | tail -10)${NC}"
+        else
+            echo -e "${GRAY}$content${NC}"
+        fi
+    fi
+}
+
+# Main
+echo -e "${BOLD}${CYAN}Claude Code Activity Monitor${NC}"
+echo -e "${GRAY}Watching for Claude commands and outputs...${NC}"
+echo ""
+
+LOG_FILE=$(find_latest_log)
+
+if [[ -z "$LOG_FILE" ]]; then
+    echo -e "${RED}No Claude log files found in $CLAUDE_LOG_DIR${NC}"
+    echo "Make sure Claude Code has been used in this session."
+    exit 1
+fi
+
+echo -e "${GRAY}Log file: $LOG_FILE${NC}"
+echo ""
+
+# Show last N entries
+if [[ $LAST_N -gt 0 ]]; then
+    # We need more lines to get context (text before tool calls)
+    tail -n $(($LAST_N * 4)) "$LOG_FILE" 2>/dev/null | while IFS= read -r line; do
+        process_line "$line"
+    done
+fi
+
+# Follow mode
+if [[ "$FOLLOW" == "true" ]]; then
+    echo ""
+    echo -e "${GRAY}--- Following (Ctrl+C to stop) ---${NC}"
+    echo ""
+
+    tail -f "$LOG_FILE" 2>/dev/null | while IFS= read -r line; do
+        process_line "$line"
+    done
+fi
