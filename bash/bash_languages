@@ -1,83 +1,70 @@
-# Language-specific features get sourced from this file
+# bash_languages - Language-specific configurations
+# Sourced by bashrc
 
-echo "Check bash_languages file"
 ############
 ### RUBY ###
 ############
 
-echo "Ruby config..."
 if [ -d "$HOME/.rbenv/bin" ]; then
-	export PATH=$PATH:$HOME/.rbenv/bin
+    export PATH="$PATH:$HOME/.rbenv/bin"
 fi
 
 if [ -d "$HOME/.rbenv/shims" ]; then
-	export PATH=$PATH:$HOME/.rbenv/shims
+    export PATH="$PATH:$HOME/.rbenv/shims"
 fi
 
-if [ -f "$HOME/.gemrc" ]; then
-	echo "Found gemrc"
-else
-	echo "gem: --no-document" > ~/.gemrc
+if [ ! -f "$HOME/.gemrc" ]; then
+    echo "gem: --no-document" > ~/.gemrc
 fi
 
-if command -v rbenv &> /dev/null; then
-	eval "$(rbenv init -)"
-else
-	echo "rbenv not installed...skipping" >> /dev/null
+if command -v rbenv >/dev/null 2>&1; then
+    eval "$(rbenv init -)"
 fi
 
 #########################
 ### PYTHON/VIRTUALENV ###
 #########################
 
-echo "Python virtualenv config..."
 if [ -d "$HOME/.virtualenvs" ]; then
-	export WORKON_HOME=$HOME/.virtualenvs
-	export PROJECT_HOME=$HOME/build/venv_projects
-	export PATH=/usr/local/bin:$PATH
-	export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
-	export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
-	source /usr/local/bin/virtualenvwrapper.sh
+    export WORKON_HOME="$HOME/.virtualenvs"
+    export PROJECT_HOME="$HOME/build/venv_projects"
+    export PATH="/usr/local/bin:$PATH"
+    export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
+    export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv
+
+    if [ -f /usr/local/bin/virtualenvwrapper.sh ]; then
+        source /usr/local/bin/virtualenvwrapper.sh 2>/dev/null
+    fi
 fi
 
 ##########
 ### GO ###
 ##########
 
-echo "Golang config ..."
 if [ -d "/usr/local/go" ]; then
-	# GOPATH - tell go where to find code
-	export GOPATH=$HOME/build/go
-
-	# Workspace bin
-	export PATH=$PATH:$GOPATH/bin
-
-	# Default location of the go binary
-	export PATH=$PATH:/usr/local/go/bin
+    export GOPATH="$HOME/build/go"
+    export PATH="$PATH:$GOPATH/bin"
+    export PATH="$PATH:/usr/local/go/bin"
 fi
 
 ############################
 ### RUST (for alacritty) ###
 ############################
 
-if [ -d "$HOME/.cargo" ] && [ -d "$HOME/build/repos/third-party/alacritty" ]; then
-	source "$HOME/.cargo/env"
-        source "$HOME/build/repos/third-party/alacritty/extra/completions/alacritty.bash"
-fi
+if [ -d "$HOME/.cargo" ]; then
+    source "$HOME/.cargo/env" 2>/dev/null
 
-################
-### NODE/NVM ###
-################
-if [ -d "$HOME/.nvm" ]; then
-	export NVM_DIR="$HOME/.nvm"
-	[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-	[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+    if [ -f "$HOME/build/repos/third-party/alacritty/extra/completions/alacritty.bash" ]; then
+        source "$HOME/build/repos/third-party/alacritty/extra/completions/alacritty.bash" 2>/dev/null
+    fi
 fi
 
 ############
 ### LVIM ###
 ############
+
 if [ ! -d "$HOME/.local/bin" ]; then
-	mkdir $HOME/.local/bin
+    mkdir -p "$HOME/.local/bin"
 fi
-export PATH=$PATH:/$HOME/.local/bin
+
+export PATH="$PATH:$HOME/.local/bin"

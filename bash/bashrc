@@ -1,324 +1,89 @@
+# bashrc - Main bash configuration
+# This file bootstraps the shell by sourcing modular configuration files
+
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
+#################
+### CORE PATH ###
+#################
+
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/home/tthompson/bin
 
-# Prompt
-# If this is sourced from bashrc in the repo, it overwrites $HOME/.bashrc
-# green user@host blue DIR: current working dir ...everything after is white
-export PS1="\e[0;32m[\u@\h] \e[0;34mDIR: \W\033[00m\] $: "
-
-#################
-### FUNCTIONS ###
-#################
-
-# Hostname in tmux pane
-SSHEXEC=$(which ssh)
-conn() {
-    if [ -n "$TMUX" ]
-    then
-        title="SERVER:$*"
-        if [ "$1" = -t ]
-        then
-            title="$2"
-            shift 2
-        fi
-    tmux rename-window "$title"
-    "$SSHEXEC" "$@"
-    else
-        "$SSHEXEC" "$@"
-fi
-}
-export -f conn
-
-# Make a directory and cd into it
-mcd () {
-    mkdir -p "$1"
-    cd "$1" || exit
-}
-
-extract () {
- if [ -z "$1" ]; then
-    # display usage if no parameters given
-    echo "Usage: extract <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>"
-    echo "       extract <path/file_name_1.ext> [path/file_name_2.ext] [path/file_name_3.ext]"
-    return 1
- else
-    for n in "$@"
-    do
-      if [ -f "$n" ] ; then
-          case "${n%,}" in
-            *.tar.bz2|*.tar.gz|*.tar.xz|*.tbz2|*.tgz|*.txz|*.tar)
-                         tar xvf "$n"       ;;
-            *.lzma)      unlzma ./"$n"      ;;
-            *.bz2)       bunzip2 ./"$n"     ;;
-            *.rar)       unrar x -ad ./"$n" ;;
-            *.gz)        gunzip ./"$n"      ;;
-            *.zip)       unzip ./"$n"       ;;
-            *.z)         uncompress ./"$n"  ;;
-            *.7z|*.arj|*.cab|*.chm|*.deb|*.dmg|*.iso|*.lzh|*.msi|*.rpm|*.udf|*.wim|*.xar)
-                         7z x ./"$n"        ;;
-            *.xz)        unxz ./"$n"        ;;
-            *.exe)       cabextract ./"$n"  ;;
-            *)
-                         echo "extract: '$n' - unknown archive method"
-                         return 1
-                         ;;
-          esac
-      else
-          echo "'$n' - file does not exist"
-          return 1
-      fi
-    done
-fi
-}
-
-# A list of my 10 most-used commands
-comstat () {
-    history | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' | grep -v "./" | column -c3 -s " " -t | sort -nr | nl |  head -n10
-}
-
-# Basic system info
-sysinfo () {
-    case "$(uname -s)" in
-        Linux*)
-            printf "CPU: "
-            grep "model name" /proc/cpuinfo | head -1 | awk '{ for (i = 4; i <= NF; i++) printf "%s ", $i }'
-            printf "\n"
-            awk '{ printf "OS: %s %s %s %s | " , $1 , $2 , $3 , $4 }' /etc/issue
-            uname -a | awk '{ printf "Kernel: %s " , $3 }'
-            uname -m | awk '{ printf "%s | " , $1 }'
-            printf "\n"
-            uptime | awk '{ printf "Uptime: %s %s %s", $3, $4, $5 }' | sed 's/,//g'
-            printf "\n"
-            printf "MEMORY: "
-            memdata=$(mktemp)
-            free -b | grep "Mem" | awk '{print $2, $3}' > "$memdata"
-            while read -r total used
-            do
-                percent=$((200*used/total % 2 + 100*used/total))
-                total_human=$(echo "$total" | awk '{ byte = $1 /1024/1024/1024 ; print byte "GB" }')
-                echo "$HOSTNAME is using $percent% of $total_human memory"
-            done < "$memdata"
-            rm -f "$memdata"
-            printf "\n"
-            ;;
-        Darwin*)
-            printf "CPU: "
-            sysctl -n machdep.cpu.brand_string
-            printf "\n"
-            printf "OS: "
-            sw_vers -productName && sw_vers -productVersion
-            uname -a | awk '{ printf "Kernel: %s " , $3 }'
-            uname -m | awk '{ printf "%s | " , $1 }'
-            printf "\n"
-            uptime | awk '{ printf "Uptime: %s %s %s", $3, $4, $5 }' | sed 's/,//g'
-            printf "\n"
-            printf "MEMORY: "
-            total_bytes=$(sysctl -n hw.memsize)
-            used_bytes=$(vm_stat | grep "Pages active:" | awk '{print $3}' | sed 's/\.//')
-            used_bytes=$((used_bytes * 4096))
-            percent=$((200*used_bytes/total_bytes % 2 + 100*used_bytes/total_bytes))
-            total_gb=$((total_bytes / 1024 / 1024 / 1024))
-            echo "$HOSTNAME is using $percent% of ${total_gb}GB memory"
-            printf "\n"
-            ;;
-        *)
-            echo "Unsupported OS: $(uname -s)"
-            ;;
-    esac
-    printf "DISK: "
-    printf "\n"
-    df -h
-}
-
-# Kill a process by name. USAGE: kp program_name
-kp () {
-    local process="$1"
-
-    if [[ -z "$process" ]]; then
-        echo "Usage: kp <process_name>"
-        return 1
-    fi
-
-    local mypidfile
-    mypidfile=$(mktemp)
-    trap 'rm -f "$mypidfile"' EXIT
-
-    if command -v pidof >/dev/null 2>&1; then
-        pidof "$process" > "$mypidfile" 2>/dev/null
-    else
-        # macOS fallback using pgrep
-        pgrep "$process" > "$mypidfile" 2>/dev/null
-    fi
-
-    local mypid
-    mypid=$(head -1 "$mypidfile")
-
-    if [[ -n "$mypid" ]]; then
-        if kill -9 "$mypid" 2>/dev/null; then
-            echo "PID $mypid ($process) killed."
-        else
-            echo "Failed to kill PID $mypid ($process)."
-            return 1
-        fi
-    else
-        echo "No process named '$process' found."
-        return 1
-    fi
-}
-
-# Count the number of characters in a string
-charcount () {
-    word=$1
-    echo "${#word}"
-}
-
-# See if package is installed
-installed () {
-    package=$1
-    sudo dpkg -l | grep -i "$package"
-}
-
-# Generate a password
-genpass () {
-    if [ -f "/usr/bin/pwgen" ]; then
-        pwgen -y 20
-    else
-        echo "pwgen is not installed"
-    fi
-}
-
-
-# Generate encrypted password
-genhash () {
-    rawpass=$1
-    echo -n "$rawpass" | makepasswd --crypt-md5 --clearfrom - | awk '{print $2}'
-}
-
-gensha () {
-    mkpasswd -m sha-512
-}
-
-# Put something on the clipboard
-clip () {
-    target=$1
-    echo "$target" | xclip -sel clipboard
-}
-
-# Recursive grep on the current directory
-crawl () {
-    target=$1
-    mypath=$2
-
-    if [ -z "$mypath" ]
-    then
-        grep -R "$target" . | grep -v grep | grep -v "pristine"
-    else
-        grep -R "$target" "$mypath" | grep -v grep | grep -v "pristine"
-    fi
-}
-
-#####################
-### END FUNCTIONS ###
-#####################
-
-###############
-### ALIASES ###
-###############
-
-# ps
-#alias ps="ps a"
-alias psg="ps a | grep -v grep | grep -i -e VSZ -e"
-
-# ls
-alias lg="ls -l | grep -v grep | grep -i -e VSZ -e"
-
-# Search history
-alias hg="history | grep"
-
-# See if system is listening on provided port
-alias netport='
-if command -v ss >/dev/null 2>&1; then
-    ss -tlnp | grep LISTEN
-else
-    case "$(uname -s)" in
-        Darwin*)
-            netstat -an | grep LISTEN
-            ;;
-        *)
-            sudo netstat -lntp | grep -i listen
-            ;;
-    esac
-fi'
-
-# Get my IP address
-alias myip="curl -s https://ipinfo.io/ip 2>/dev/null || curl -s http://ipecho.net/plain 2>/dev/null || echo 'Unable to get IP'"
-
-# df -h shortcut
-alias df="df -h"
-
-# Back to the previous directory
-alias back='cd "$OLDPWD"'
-
-# generate a cleartext password
-alias gimmeapass='pwgen -sy 16 1'
-
-# generate a SHA-512 hash
-alias gimmeahash='function _gimmeahash() {
-  if [ -z "$1" ]; then
-    echo "Usage: gimmeahash <password>"
-    return 1
-  fi
-  docker run --rm alpine sh -c "apk add --no-cache openssl > /dev/null && openssl passwd -6 \"$1\""
-}; _gimmeahash'
-
-
-###################
-### END ALIASES ###
-###################
-
-#############################
-### OTHER CONFIG SOURCING ###
-#############################
-
-# KEYCHAIN
-if [ -f $HOME/.mykeychain ]; then
-        . $HOME/.mykeychain
-fi
-
-# Include language-specific file
-if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_languages ]; then
-    . $HOME/build/repos/mine/sysconfigs/bash/bash_languages
-fi
-
-# Add Homebrew to PATH (needed before utilities check for tools)
+# Add Homebrew to PATH (macOS)
 if [ -d "/opt/homebrew/bin" ]; then
     export PATH="/opt/homebrew/bin:$PATH"
 fi
 
-# Include utilty-specific file
-if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_utilities ]; then
-    . $HOME/build/repos/mine/sysconfigs/bash/bash_utilities
+# Add ~/.local/bin to PATH
+if [ -d "$HOME/.local/bin" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Include CI/CD Pipeline aliases
-if [ -f $HOME/build/repos/mine/sysconfigs/bash/bash_pipeline ]; then
-    . $HOME/build/repos/mine/sysconfigs/bash/bash_pipeline
-fi
+##############
+### PROMPT ###
+##############
 
-# Add $HOME/.local/bin to PATH
-if [ -d $HOME/.local/bin ]; then
-	export PATH="$HOME/.local/bin:$PATH"
+# Green user@host, blue DIR, white command
+export PS1="\e[0;32m[\u@\h] \e[0;34mDIR: \W\033[00m\] $: "
+
+###########################
+### SOURCE CONFIG FILES ###
+###########################
+
+SYSCONFIGS="$HOME/build/repos/mine/sysconfigs/bash"
+
+# Source files in order (colors first so other scripts can use them)
+# Files that don't exist are silently skipped
+_source_if_exists() {
+    [[ -f "$1" ]] && source "$1"
+}
+
+# Core utilities (order matters)
+_source_if_exists "$SYSCONFIGS/bash_colors"      # Color variables and logging
+_source_if_exists "$SYSCONFIGS/bash_aliases"     # Common aliases
+_source_if_exists "$SYSCONFIGS/bash_functions"   # General utility functions
+_source_if_exists "$SYSCONFIGS/bash_system"      # System inspection functions
+_source_if_exists "$SYSCONFIGS/bash_security"    # Password/hash generation
+
+# Tool-specific
+_source_if_exists "$SYSCONFIGS/bash_docker"      # Docker utilities
+_source_if_exists "$SYSCONFIGS/bash_git"         # Git shortcuts
+
+# Environment-specific
+_source_if_exists "$SYSCONFIGS/bash_languages"   # Language configs (Ruby, Python, Go, etc.)
+_source_if_exists "$SYSCONFIGS/bash_utilities"   # Tool configs (Alacritty, Neovim, etc.)
+_source_if_exists "$SYSCONFIGS/bash_pipeline"    # CI/CD aliases
+
+# Cleanup helper function
+unset -f _source_if_exists
+
+#####################
+### LOCAL CONFIGS ###
+#####################
+
+# Keychain (SSH agent)
+if [ -f "$HOME/.mykeychain" ]; then
+    source "$HOME/.mykeychain"
 fi
 
 ###############
-### AWS ECR ###
+### EXPORTS ###
 ###############
+
+# AWS ECR
 export ECRN9N="978412993113.dkr.ecr.us-west-2.amazonaws.com"
 
-complete -C /usr/bin/terraform terraform
+###################
+### COMPLETIONS ###
+###################
 
+# Terraform
+if command -v terraform >/dev/null 2>&1; then
+    complete -C /usr/bin/terraform terraform
+fi
+
+# Direnv
 if command -v direnv >/dev/null 2>&1; then
     eval "$(direnv hook bash)"
 fi

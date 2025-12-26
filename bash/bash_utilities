@@ -1,72 +1,42 @@
+# bash_utilities - Tool-specific configurations
+# Sourced by bashrc
 
-echo "Checking bash_utilities file"
-# Configure direnv
+#################
+### ALACRITTY ###
+#################
 
-if [ -f /usr/bin/direnv ]; then
-    eval "$(direnv hook bash)"
-fi
-
-# Choose docker environment
-setdocker() {
-    destination=$1
-
-    # Choose docker host
-    case $destination in
-        # Use the local lab server
-        lab)
-            export DOCKER_HOST=ssh://tthompson@techlab
-            ;;
-        # Use k8s server
-        k8s)
-            export DOCKER_HOST=ssh://tthompson@k8slab
-            ;;
-        # Use the containers server in DigitalOcean
-        containers)
-            export DOCKER_HOST=ssh://tthompson@containers
-            ;;
-        # Any other response sets docker to use localhost
-        *)
-            unset DOCKER_HOST
-    esac
-
-    # Restart the local daemon
-    sudo systemctl daemon-reload
-    sudo systemctl restart docker
-
-}
-
-# Alacritty
-ALACRITTY_BIN="$(command -v alacritty)"
+ALACRITTY_BIN="$(command -v alacritty 2>/dev/null)"
 
 if [ -n "$ALACRITTY_BIN" ]; then
     mkdir -p "$HOME/.bash_completion"
 
     # Try to use completions from manual build path first
     if [ -f "$HOME/build/packages/alacritty/alacritty/extra/completions/alacritty.bash" ]; then
-        cp "$HOME/build/packages/alacritty/alacritty/extra/completions/alacritty.bash" "$HOME/.bash_completion/alacritty"
-        source "$HOME/.bash_completion/alacritty"
+        cp "$HOME/build/packages/alacritty/alacritty/extra/completions/alacritty.bash" "$HOME/.bash_completion/alacritty" 2>/dev/null
+        source "$HOME/.bash_completion/alacritty" 2>/dev/null
     elif [ -f "/usr/share/bash-completion/completions/alacritty" ]; then
-        source "/usr/share/bash-completion/completions/alacritty"
-    else
-        echo "No Alacritty completion file found."
+        source "/usr/share/bash-completion/completions/alacritty" 2>/dev/null
     fi
-else
-    echo "alacritty not installed"
 fi
+
+##############
+### NEOVIM ###
+##############
 
 if [ -d /opt/nvim-linux64 ]; then
-	export PATH="$PATH:/opt/nvim-linux64/bin"
-	alias vim='nvim'
+    export PATH="$PATH:/opt/nvim-linux64/bin"
+    alias vim='nvim'
+elif [ -d /opt/nvim-linux-x86_64 ]; then
+    export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
+    alias vim='nvim'
 fi
 
-if [ -d $HOME/.nvm ]; then
+###########
+### NVM ###
+###########
 
-	export NVM_DIR="$HOME/.nvm"
-	[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-	[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-fi
-
-# Neovim
-if [ -d /opt/nvim-linux-x86_64 ]; then
-	export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
+if [ -d "$HOME/.nvm" ]; then
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 fi

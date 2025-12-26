@@ -1,0 +1,206 @@
+# bash_docker - Docker and container utilities
+# Sourced by bashrc
+
+# Check if docker is available
+if ! command -v docker >/dev/null 2>&1; then
+    return 0
+fi
+
+#################
+### FUNCTIONS ###
+#################
+
+# Choose docker environment (moved from bash_utilities)
+setdocker() {
+    local destination="$1"
+
+    case "$destination" in
+        lab)
+            export DOCKER_HOST=ssh://tthompson@techlab
+            log_success "Docker host: techlab"
+            ;;
+        k8s)
+            export DOCKER_HOST=ssh://tthompson@k8slab
+            log_success "Docker host: k8slab"
+            ;;
+        containers)
+            export DOCKER_HOST=ssh://tthompson@containers
+            log_success "Docker host: containers"
+            ;;
+        *)
+            unset DOCKER_HOST
+            log_success "Docker host: local"
+            ;;
+    esac
+}
+
+# Stop all running containers
+dstop() {
+    local containers=$(docker ps -q)
+    if [ -z "$containers" ]; then
+        log_info "No running containers"
+        return 0
+    fi
+    log_info "Stopping all containers..."
+    docker stop $containers
+    log_success "All containers stopped"
+}
+
+# Remove all stopped containers
+drm() {
+    local containers=$(docker ps -aq -f status=exited)
+    if [ -z "$containers" ]; then
+        log_info "No stopped containers to remove"
+        return 0
+    fi
+    log_info "Removing stopped containers..."
+    docker rm $containers
+    log_success "Stopped containers removed"
+}
+
+# Remove all containers (stopped and running)
+drmall() {
+    local containers=$(docker ps -aq)
+    if [ -z "$containers" ]; then
+        log_info "No containers to remove"
+        return 0
+    fi
+    log_warn "This will remove ALL containers (including running ones)"
+    read -p "Continue? [y/N] " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        docker rm -f $containers
+        log_success "All containers removed"
+    else
+        log_info "Cancelled"
+    fi
+}
+
+# Full Docker prune (containers, images, volumes, networks)
+dprune() {
+    log_warn "This will remove all unused Docker resources"
+    read -p "Continue? [y/N] " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        docker system prune -af --volumes
+        log_success "Docker system pruned"
+    else
+        log_info "Cancelled"
+    fi
+}
+
+# Tail container logs
+dlogs() {
+    local container="$1"
+    local lines="${2:-100}"
+
+    if [ -z "$container" ]; then
+        echo "Usage: dlogs <container_name_or_id> [num_lines]"
+        return 1
+    fi
+
+    docker logs -f --tail "$lines" "$container"
+}
+
+# Quick exec into container (bash or sh)
+dexec() {
+    local container="$1"
+    local shell="${2:-/bin/bash}"
+
+    if [ -z "$container" ]; then
+        echo "Usage: dexec <container_name_or_id> [shell]"
+        return 1
+    fi
+
+    # Try bash first, fall back to sh
+    docker exec -it "$container" "$shell" 2>/dev/null || \
+        docker exec -it "$container" /bin/sh
+}
+
+# Prettier docker ps
+dps() {
+    docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+}
+
+# Show all containers (including stopped)
+dpsa() {
+    docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+}
+
+# List images with sizes
+dimages() {
+    docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}"
+}
+
+# Remove dangling images
+drmi() {
+    local images=$(docker images -qf "dangling=true")
+    if [ -z "$images" ]; then
+        log_info "No dangling images to remove"
+        return 0
+    fi
+    docker rmi $images
+    log_success "Dangling images removed"
+}
+
+# ECR login helper
+decrlogin() {
+    local region="${1:-us-east-1}"
+    local account="${2:-047011493927}"
+
+    if ! command -v aws >/dev/null 2>&1; then
+        log_error "AWS CLI not installed"
+        return 1
+    fi
+
+    log_info "Logging into ECR (account: $account, region: $region)..."
+    aws ecr get-login-password --region "$region" | \
+        docker login --username AWS --password-stdin "${account}.dkr.ecr.${region}.amazonaws.com"
+
+    if [ $? -eq 0 ]; then
+        log_success "ECR login successful"
+    else
+        log_error "ECR login failed"
+        return 1
+    fi
+}
+
+# Show container resource usage
+dstats() {
+    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
+}
+
+# Inspect container (formatted)
+dinspect() {
+    local container="$1"
+    if [ -z "$container" ]; then
+        echo "Usage: dinspect <container_name_or_id>"
+        return 1
+    fi
+    docker inspect "$container" | jq '.[0]' 2>/dev/null || docker inspect "$container"
+}
+
+# Get container IP address
+dip() {
+    local container="$1"
+    if [ -z "$container" ]; then
+        echo "Usage: dip <container_name_or_id>"
+        return 1
+    fi
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container"
+}
+
+# Build image with current directory name as tag
+dbuild() {
+    local tag="${1:-$(basename $(pwd))}"
+    log_info "Building image: $tag"
+    docker build -t "$tag" .
+}
+
+#############
+### ALIASES ###
+#############
+
+alias dc="docker compose"
+alias dcu="docker compose up -d"
+alias dcd="docker compose down"
+alias dcl="docker compose logs -f"
+alias dcr="docker compose restart"

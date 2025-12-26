@@ -1,0 +1,200 @@
+# bash_system - System inspection and management functions
+# Sourced by bashrc
+
+# Top 10 most-used commands from history
+comstat() {
+    history | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' \
+        | grep -v "./" | column -c3 -s " " -t | sort -nr | nl | head -n10
+}
+
+# Basic system info (cross-platform)
+sysinfo() {
+    log_header "System Information"
+
+    case "$(uname -s)" in
+        Linux*)
+            printf "${COLOR_CYAN}CPU:${COLOR_NC} "
+            grep "model name" /proc/cpuinfo | head -1 | awk '{ for (i = 4; i <= NF; i++) printf "%s ", $i }'
+            printf "\n"
+
+            printf "${COLOR_CYAN}OS:${COLOR_NC} "
+            if [ -f /etc/os-release ]; then
+                . /etc/os-release
+                echo "$PRETTY_NAME"
+            else
+                awk '{ printf "%s %s %s %s" , $1 , $2 , $3 , $4 }' /etc/issue
+            fi
+
+            printf "${COLOR_CYAN}Kernel:${COLOR_NC} "
+            uname -r
+
+            printf "${COLOR_CYAN}Uptime:${COLOR_NC} "
+            uptime -p 2>/dev/null || uptime | awk '{ printf "%s %s %s", $3, $4, $5 }' | sed 's/,//g'
+            echo
+
+            printf "${COLOR_CYAN}Memory:${COLOR_NC} "
+            free -h | awk '/Mem:/ {printf "%s used / %s total (%s free)\n", $3, $2, $4}'
+
+            printf "${COLOR_CYAN}Load:${COLOR_NC} "
+            cat /proc/loadavg | awk '{print $1, $2, $3}'
+            ;;
+
+        Darwin*)
+            printf "${COLOR_CYAN}CPU:${COLOR_NC} "
+            sysctl -n machdep.cpu.brand_string
+
+            printf "${COLOR_CYAN}OS:${COLOR_NC} "
+            sw_vers -productName
+            printf " "
+            sw_vers -productVersion
+            echo
+
+            printf "${COLOR_CYAN}Kernel:${COLOR_NC} "
+            uname -r
+
+            printf "${COLOR_CYAN}Uptime:${COLOR_NC} "
+            uptime | awk '{ printf "%s %s %s", $3, $4, $5 }' | sed 's/,//g'
+            echo
+
+            printf "${COLOR_CYAN}Memory:${COLOR_NC} "
+            total_bytes=$(sysctl -n hw.memsize)
+            total_gb=$((total_bytes / 1024 / 1024 / 1024))
+            echo "${total_gb}GB total"
+            ;;
+
+        *)
+            echo "Unsupported OS: $(uname -s)"
+            ;;
+    esac
+
+    echo
+    log_header "Disk Usage"
+    df -h | grep -E '^/dev|^Filesystem'
+}
+
+# Kill a process by name
+kp() {
+    local process="$1"
+
+    if [[ -z "$process" ]]; then
+        echo "Usage: kp <process_name>"
+        return 1
+    fi
+
+    local pids
+    if command -v pgrep >/dev/null 2>&1; then
+        pids=$(pgrep -f "$process")
+    elif command -v pidof >/dev/null 2>&1; then
+        pids=$(pidof "$process")
+    else
+        log_error "Neither pgrep nor pidof available"
+        return 1
+    fi
+
+    if [[ -z "$pids" ]]; then
+        log_warn "No process found matching '$process'"
+        return 1
+    fi
+
+    echo "Found processes:"
+    ps -p $(echo $pids | tr '\n' ',') -o pid,comm,args 2>/dev/null || ps aux | grep "$process" | grep -v grep
+
+    read -p "Kill these processes? [y/N] " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        echo "$pids" | xargs kill -9 2>/dev/null
+        log_success "Processes killed"
+    else
+        log_info "Cancelled"
+    fi
+}
+
+# Check if package is installed (cross-platform)
+installed() {
+    local package="$1"
+
+    if [ -z "$package" ]; then
+        echo "Usage: installed <package_name>"
+        return 1
+    fi
+
+    # Detect package manager and check
+    if command -v dpkg >/dev/null 2>&1; then
+        dpkg -l | grep -i "$package"
+    elif command -v rpm >/dev/null 2>&1; then
+        rpm -qa | grep -i "$package"
+    elif command -v brew >/dev/null 2>&1; then
+        brew list | grep -i "$package"
+    elif command -v pacman >/dev/null 2>&1; then
+        pacman -Q | grep -i "$package"
+    else
+        # Fallback: check if command exists
+        if command -v "$package" >/dev/null 2>&1; then
+            log_success "$package is available"
+            which "$package"
+        else
+            log_warn "Could not find $package"
+            return 1
+        fi
+    fi
+}
+
+# Show listening ports with process info
+ports() {
+    log_header "Listening Ports"
+    if command -v ss >/dev/null 2>&1; then
+        ss -tlnp 2>/dev/null || sudo ss -tlnp
+    elif command -v netstat >/dev/null 2>&1; then
+        case "$(uname -s)" in
+            Darwin*)
+                netstat -an | grep LISTEN
+                ;;
+            *)
+                sudo netstat -tlnp | grep LISTEN
+                ;;
+        esac
+    else
+        log_error "Neither ss nor netstat available"
+        return 1
+    fi
+}
+
+# Show top processes by memory
+topmem() {
+    local count="${1:-10}"
+    log_header "Top $count Processes by Memory"
+    ps aux --sort=-%mem | head -n $((count + 1))
+}
+
+# Show top processes by CPU
+topcpu() {
+    local count="${1:-10}"
+    log_header "Top $count Processes by CPU"
+    ps aux --sort=-%cpu | head -n $((count + 1))
+}
+
+# Quick system health check
+health() {
+    log_header "System Health"
+
+    # Load average
+    printf "${COLOR_CYAN}Load:${COLOR_NC} "
+    if [ -f /proc/loadavg ]; then
+        cat /proc/loadavg | awk '{print $1, $2, $3}'
+    else
+        uptime | awk -F'load average:' '{print $2}'
+    fi
+
+    # Memory
+    printf "${COLOR_CYAN}Memory:${COLOR_NC} "
+    if command -v free >/dev/null 2>&1; then
+        free -h | awk '/Mem:/ {printf "%s used / %s total\n", $3, $2}'
+    fi
+
+    # Disk
+    printf "${COLOR_CYAN}Disk /:${COLOR_NC} "
+    df -h / | awk 'NR==2 {printf "%s used / %s total (%s)\n", $3, $2, $5}'
+
+    # Uptime
+    printf "${COLOR_CYAN}Uptime:${COLOR_NC} "
+    uptime -p 2>/dev/null || uptime | awk -F'up ' '{print $2}' | awk -F',' '{print $1, $2}'
+}

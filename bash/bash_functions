@@ -1,0 +1,146 @@
+# bash_functions - General utility functions
+# Sourced by bashrc
+
+# SSH wrapper that renames tmux window to show hostname
+SSHEXEC=$(which ssh)
+conn() {
+    if [ -n "$TMUX" ]; then
+        title="SERVER:$*"
+        if [ "$1" = -t ]; then
+            title="$2"
+            shift 2
+        fi
+        tmux rename-window "$title"
+        "$SSHEXEC" "$@"
+    else
+        "$SSHEXEC" "$@"
+    fi
+}
+export -f conn
+
+# Make a directory and cd into it
+mcd() {
+    mkdir -p "$1"
+    cd "$1" || return 1
+}
+
+# Universal archive extraction
+extract() {
+    if [ -z "$1" ]; then
+        echo "Usage: extract <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>"
+        echo "       extract <path/file_name_1.ext> [path/file_name_2.ext] [path/file_name_3.ext]"
+        return 1
+    fi
+
+    for n in "$@"; do
+        if [ -f "$n" ]; then
+            case "${n%,}" in
+                *.tar.bz2|*.tar.gz|*.tar.xz|*.tbz2|*.tgz|*.txz|*.tar)
+                    tar xvf "$n" ;;
+                *.lzma)      unlzma ./"$n" ;;
+                *.bz2)       bunzip2 ./"$n" ;;
+                *.rar)       unrar x -ad ./"$n" ;;
+                *.gz)        gunzip ./"$n" ;;
+                *.zip)       unzip ./"$n" ;;
+                *.z)         uncompress ./"$n" ;;
+                *.7z|*.arj|*.cab|*.chm|*.deb|*.dmg|*.iso|*.lzh|*.msi|*.rpm|*.udf|*.wim|*.xar)
+                    7z x ./"$n" ;;
+                *.xz)        unxz ./"$n" ;;
+                *.exe)       cabextract ./"$n" ;;
+                *)
+                    log_error "extract: '$n' - unknown archive method"
+                    return 1
+                    ;;
+            esac
+        else
+            log_error "'$n' - file does not exist"
+            return 1
+        fi
+    done
+}
+
+# Recursive grep on a directory
+crawl() {
+    local target="$1"
+    local mypath="${2:-.}"
+
+    if [ -z "$target" ]; then
+        echo "Usage: crawl <pattern> [path]"
+        return 1
+    fi
+
+    grep -R "$target" "$mypath" | grep -v grep | grep -v "pristine"
+}
+
+# Put something on the clipboard (Linux with xclip)
+clip() {
+    local target="$1"
+    if command -v xclip >/dev/null 2>&1; then
+        echo "$target" | xclip -sel clipboard
+        log_success "Copied to clipboard"
+    elif command -v pbcopy >/dev/null 2>&1; then
+        echo "$target" | pbcopy
+        log_success "Copied to clipboard"
+    else
+        log_error "No clipboard utility found (xclip or pbcopy)"
+        return 1
+    fi
+}
+
+# Count the number of characters in a string
+charcount() {
+    local word="$1"
+    if [ -z "$word" ]; then
+        echo "Usage: charcount <string>"
+        return 1
+    fi
+    echo "${#word}"
+}
+
+# Find files by name pattern
+ff() {
+    local pattern="$1"
+    local dir="${2:-.}"
+    if [ -z "$pattern" ]; then
+        echo "Usage: ff <pattern> [directory]"
+        return 1
+    fi
+    find "$dir" -type f -iname "*$pattern*" 2>/dev/null
+}
+
+# Find directories by name pattern
+fd() {
+    local pattern="$1"
+    local dir="${2:-.}"
+    if [ -z "$pattern" ]; then
+        echo "Usage: fd <pattern> [directory]"
+        return 1
+    fi
+    find "$dir" -type d -iname "*$pattern*" 2>/dev/null
+}
+
+# Quick backup of a file (creates file.bak.YYYYMMDD_HHMMSS)
+bak() {
+    local file="$1"
+    if [ -z "$file" ]; then
+        echo "Usage: bak <file>"
+        return 1
+    fi
+    if [ ! -f "$file" ]; then
+        log_error "File not found: $file"
+        return 1
+    fi
+    cp "$file" "${file}.bak.$(date +%Y%m%d_%H%M%S)"
+    log_success "Backed up: $file"
+}
+
+# Show file/directory sizes sorted
+dsize() {
+    du -sh "${1:-.}"/* 2>/dev/null | sort -h
+}
+
+# Quick weather (requires curl)
+weather() {
+    local location="${1:-}"
+    curl -s "wttr.in/${location}?format=3"
+}

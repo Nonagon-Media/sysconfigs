@@ -1,0 +1,84 @@
+# bash_aliases - Common aliases
+# Sourced by bashrc
+
+###############
+### GENERAL ###
+###############
+
+# Process grep
+alias psg="ps a | grep -v grep | grep -i -e VSZ -e"
+
+# List files grep
+alias lg="ls -l | grep -v grep | grep -i -e VSZ -e"
+
+# Search history
+alias hg="history | grep"
+
+# df with human readable sizes
+alias df="df -h"
+
+# Back to previous directory
+alias back='cd "$OLDPWD"'
+
+# Clear screen
+alias c="clear"
+
+# Quick exit
+alias q="exit"
+
+###############
+### NETWORK ###
+###############
+
+# See if system is listening on provided port
+alias netport='
+if command -v ss >/dev/null 2>&1; then
+    ss -tlnp | grep LISTEN
+else
+    case "$(uname -s)" in
+        Darwin*)
+            netstat -an | grep LISTEN
+            ;;
+        *)
+            sudo netstat -lntp | grep -i listen
+            ;;
+    esac
+fi'
+
+# Get my external IP address
+alias myip="curl -s https://ipinfo.io/ip 2>/dev/null || curl -s http://ipecho.net/plain 2>/dev/null || echo 'Unable to get IP'"
+
+# Quick ping test
+alias pingg="ping -c 3 google.com"
+
+################
+### PASSWORD ###
+################
+
+# Generate a cleartext password
+alias gimmeapass='pwgen -sy 16 1'
+
+# Generate a SHA-512 hash via Docker (cross-platform)
+alias gimmeahash='function _gimmeahash() {
+  if [ -z "$1" ]; then
+    echo "Usage: gimmeahash <password>"
+    return 1
+  fi
+  docker run --rm alpine sh -c "apk add --no-cache openssl > /dev/null && openssl passwd -6 \"$1\""
+}; _gimmeahash'
+
+############
+### MISC ###
+############
+
+# Reload bashrc
+alias reload="source ~/.bashrc"
+
+# Show PATH entries one per line
+alias path='echo $PATH | tr ":" "\n"'
+
+# Quick timestamp
+alias timestamp='date +%Y%m%d_%H%M%S'
+
+# What is my shell
+alias myshell='echo $SHELL'

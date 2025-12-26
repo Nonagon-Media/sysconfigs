@@ -1,0 +1,116 @@
+# bash_security - Password and hash generation functions
+# Sourced by bashrc
+
+# Generate a password using pwgen
+genpass() {
+    local length="${1:-20}"
+
+    if command -v pwgen >/dev/null 2>&1; then
+        pwgen -sy "$length" 1
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl rand -base64 32 | head -c "$length"
+        echo
+    else
+        log_error "Neither pwgen nor openssl available"
+        return 1
+    fi
+}
+
+# Generate MD5 hash of password (legacy, use gensha for new systems)
+genhash() {
+    local rawpass="$1"
+
+    if [ -z "$rawpass" ]; then
+        echo "Usage: genhash <password>"
+        return 1
+    fi
+
+    if command -v makepasswd >/dev/null 2>&1; then
+        echo -n "$rawpass" | makepasswd --crypt-md5 --clearfrom - | awk '{print $2}'
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl passwd -1 "$rawpass"
+    else
+        log_error "Neither makepasswd nor openssl available"
+        return 1
+    fi
+}
+
+# Generate SHA-512 hash (preferred for modern systems)
+gensha() {
+    local rawpass="$1"
+
+    if [ -z "$rawpass" ]; then
+        # Interactive mode
+        if command -v mkpasswd >/dev/null 2>&1; then
+            mkpasswd -m sha-512
+        elif command -v openssl >/dev/null 2>&1; then
+            read -sp "Password: " rawpass
+            echo
+            openssl passwd -6 "$rawpass"
+        else
+            log_error "Neither mkpasswd nor openssl available"
+            return 1
+        fi
+    else
+        # Password provided as argument
+        if command -v mkpasswd >/dev/null 2>&1; then
+            echo "$rawpass" | mkpasswd -m sha-512 --stdin
+        elif command -v openssl >/dev/null 2>&1; then
+            openssl passwd -6 "$rawpass"
+        elif command -v docker >/dev/null 2>&1; then
+            docker run --rm alpine sh -c "apk add --no-cache openssl > /dev/null && openssl passwd -6 '$rawpass'"
+        else
+            log_error "No password hashing tool available"
+            return 1
+        fi
+    fi
+}
+
+# Generate a random string (alphanumeric)
+randstr() {
+    local length="${1:-32}"
+    cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w "$length" | head -n 1
+}
+
+# Generate a UUID
+genuuid() {
+    if command -v uuidgen >/dev/null 2>&1; then
+        uuidgen
+    elif [ -f /proc/sys/kernel/random/uuid ]; then
+        cat /proc/sys/kernel/random/uuid
+    else
+        # Fallback using openssl
+        openssl rand -hex 16 | sed 's/\(..\)\(..\)\(..\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1\2\3\4-\5\6-\7\8-/'
+    fi
+}
+
+# Encode string to base64
+b64enc() {
+    local input="$1"
+    if [ -z "$input" ]; then
+        echo "Usage: b64enc <string>"
+        return 1
+    fi
+    echo -n "$input" | base64
+}
+
+# Decode base64 string
+b64dec() {
+    local input="$1"
+    if [ -z "$input" ]; then
+        echo "Usage: b64dec <base64_string>"
+        return 1
+    fi
+    echo "$input" | base64 -d
+    echo
+}
+
+# Quick SSH key fingerprint
+sshfp() {
+    local keyfile="${1:-$HOME/.ssh/id_rsa.pub}"
+    if [ ! -f "$keyfile" ]; then
+        log_error "Key file not found: $keyfile"
+        return 1
+    fi
+    ssh-keygen -lf "$keyfile"
+}

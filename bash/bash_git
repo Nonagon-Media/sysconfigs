@@ -1,0 +1,236 @@
+# bash_git - Git shortcuts and utilities
+# Sourced by bashrc
+
+# Check if git is available
+if ! command -v git >/dev/null 2>&1; then
+    return 0
+fi
+
+#################
+### FUNCTIONS ###
+#################
+
+# Quick status
+gs() {
+    git status "$@"
+}
+
+# Quick diff
+gd() {
+    git diff "$@"
+}
+
+# Staged diff
+gds() {
+    git diff --staged "$@"
+}
+
+# Quick log (oneline)
+gl() {
+    local count="${1:-20}"
+    git log --oneline -n "$count"
+}
+
+# Prettier log with graph
+glog() {
+    git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit -n "${1:-20}"
+}
+
+# Quick checkout
+gco() {
+    git checkout "$@"
+}
+
+# List branches (local)
+gb() {
+    git branch "$@"
+}
+
+# List all branches (including remote)
+gba() {
+    git branch -a
+}
+
+# Pull current branch
+gp() {
+    git pull "$@"
+}
+
+# Push current branch
+gph() {
+    git push "$@"
+}
+
+# Quick commit with message
+gcm() {
+    if [ -z "$1" ]; then
+        echo "Usage: gcm <commit_message>"
+        return 1
+    fi
+    git commit -m "$*"
+}
+
+# Add all and commit
+gac() {
+    if [ -z "$1" ]; then
+        echo "Usage: gac <commit_message>"
+        return 1
+    fi
+    git add -A
+    git commit -m "$*"
+}
+
+# Add, commit, and push
+gacp() {
+    if [ -z "$1" ]; then
+        echo "Usage: gacp <commit_message>"
+        return 1
+    fi
+    git add -A
+    git commit -m "$*"
+    git push
+}
+
+# Amend last commit (keep message)
+gamend() {
+    git commit --amend --no-edit
+}
+
+# Quick WIP commit
+gwip() {
+    git add -A
+    git commit -m "WIP: $(date +%Y-%m-%d\ %H:%M)"
+}
+
+# Undo last commit, keep changes staged
+gunwip() {
+    git reset --soft HEAD~1
+    log_success "Last commit undone, changes are staged"
+}
+
+# Stash with message
+gstash() {
+    local msg="${1:-WIP}"
+    git stash push -m "$msg"
+}
+
+# List stashes
+gstashls() {
+    git stash list
+}
+
+# Pop latest stash
+gstashpop() {
+    git stash pop
+}
+
+# Show what changed in a commit
+gshow() {
+    git show "${1:-HEAD}"
+}
+
+# Fetch all remotes
+gf() {
+    git fetch --all --prune
+}
+
+# Create and checkout new branch
+gnb() {
+    if [ -z "$1" ]; then
+        echo "Usage: gnb <branch_name>"
+        return 1
+    fi
+    git checkout -b "$1"
+}
+
+# Delete branch (local)
+gbd() {
+    if [ -z "$1" ]; then
+        echo "Usage: gbd <branch_name>"
+        return 1
+    fi
+    git branch -d "$1"
+}
+
+# Force delete branch (local)
+gbdf() {
+    if [ -z "$1" ]; then
+        echo "Usage: gbdf <branch_name>"
+        return 1
+    fi
+    git branch -D "$1"
+}
+
+# Show current branch name
+gcurrent() {
+    git rev-parse --abbrev-ref HEAD
+}
+
+# Show remote URL
+gremote() {
+    git remote -v
+}
+
+# Reset to remote state (dangerous!)
+greset() {
+    local branch=$(git rev-parse --abbrev-ref HEAD)
+    log_warn "This will reset to origin/$branch and lose local changes!"
+    read -p "Continue? [y/N] " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        git fetch origin
+        git reset --hard "origin/$branch"
+        log_success "Reset to origin/$branch"
+    else
+        log_info "Cancelled"
+    fi
+}
+
+# Interactive rebase on last N commits
+grebase() {
+    local count="${1:-5}"
+    git rebase -i "HEAD~$count"
+}
+
+# Show files changed in last commit
+glast() {
+    git diff-tree --no-commit-id --name-only -r HEAD
+}
+
+# Blame with line numbers
+gblame() {
+    if [ -z "$1" ]; then
+        echo "Usage: gblame <file>"
+        return 1
+    fi
+    git blame "$1"
+}
+
+# Find commits containing string
+gsearch() {
+    if [ -z "$1" ]; then
+        echo "Usage: gsearch <search_string>"
+        return 1
+    fi
+    git log --all --oneline --grep="$1"
+}
+
+# Find commits that changed a file
+ghistory() {
+    if [ -z "$1" ]; then
+        echo "Usage: ghistory <file>"
+        return 1
+    fi
+    git log --follow --oneline -- "$1"
+}
+
+#############
+### ALIASES ###
+#############
+
+alias ga="git add"
+alias gaa="git add -A"
+alias gci="git commit"
+alias gpl="git pull"
+alias gps="git push"
+alias gst="git status"
+alias gdf="git diff"

@@ -1,0 +1,80 @@
+# bash_colors - Color variables and logging functions
+# Source this first so other scripts can use colors
+
+# Only set colors if terminal supports it
+if [[ -t 1 ]] && [[ $(tput colors 2>/dev/null) -ge 8 ]]; then
+    # Basic colors
+    export COLOR_RED='\033[0;31m'
+    export COLOR_GREEN='\033[0;32m'
+    export COLOR_YELLOW='\033[0;33m'
+    export COLOR_BLUE='\033[0;34m'
+    export COLOR_PURPLE='\033[0;35m'
+    export COLOR_CYAN='\033[0;36m'
+    export COLOR_WHITE='\033[0;37m'
+
+    # Bold colors
+    export COLOR_BOLD_RED='\033[1;31m'
+    export COLOR_BOLD_GREEN='\033[1;32m'
+    export COLOR_BOLD_YELLOW='\033[1;33m'
+    export COLOR_BOLD_BLUE='\033[1;34m'
+
+    # Reset
+    export COLOR_NC='\033[0m'
+else
+    # No color support
+    export COLOR_RED=''
+    export COLOR_GREEN=''
+    export COLOR_YELLOW=''
+    export COLOR_BLUE=''
+    export COLOR_PURPLE=''
+    export COLOR_CYAN=''
+    export COLOR_WHITE=''
+    export COLOR_BOLD_RED=''
+    export COLOR_BOLD_GREEN=''
+    export COLOR_BOLD_YELLOW=''
+    export COLOR_BOLD_BLUE=''
+    export COLOR_NC=''
+fi
+
+# Logging functions
+log_info() {
+    echo -e "${COLOR_BLUE}[INFO]${COLOR_NC} $*"
+}
+
+log_warn() {
+    echo -e "${COLOR_YELLOW}[WARN]${COLOR_NC} $*"
+}
+
+log_error() {
+    echo -e "${COLOR_RED}[ERROR]${COLOR_NC} $*" >&2
+}
+
+log_success() {
+    echo -e "${COLOR_GREEN}[OK]${COLOR_NC} $*"
+}
+
+log_debug() {
+    if [[ -n "$DEBUG" ]]; then
+        echo -e "${COLOR_PURPLE}[DEBUG]${COLOR_NC} $*"
+    fi
+}
+
+# Print a header/separator
+log_header() {
+    echo -e "${COLOR_BOLD_BLUE}=== $* ===${COLOR_NC}"
+}
+
+# Print colored text without prefix
+cecho() {
+    local color="$1"
+    shift
+    case "$color" in
+        red)    echo -e "${COLOR_RED}$*${COLOR_NC}" ;;
+        green)  echo -e "${COLOR_GREEN}$*${COLOR_NC}" ;;
+        yellow) echo -e "${COLOR_YELLOW}$*${COLOR_NC}" ;;
+        blue)   echo -e "${COLOR_BLUE}$*${COLOR_NC}" ;;
+        purple) echo -e "${COLOR_PURPLE}$*${COLOR_NC}" ;;
+        cyan)   echo -e "${COLOR_CYAN}$*${COLOR_NC}" ;;
+        *)      echo -e "$color $*" ;;
+    esac
+}
