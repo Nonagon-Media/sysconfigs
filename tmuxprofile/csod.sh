@@ -4,9 +4,19 @@
 # Usage: ./csod.sh
 #
 # Creates:
-#   - Window 1: CLAUDE (single pane)
+#   - Window 1: CLAUDE (3 panes — Claude session + activity tail + on-call watcher)
 #   - Window 2: SYSTEM (single pane)
 #   - Window 3: AUTHS (12 panes for AWS/GCP environment authentication)
+#   - Window 4: IDE    (lvim opened on ~/build)
+#
+# CLAUDE window layout:
+#   ┌─────────────────────────────┬──────────────────────────┐
+#   │                             │  Pane 2: tail-claude.sh  │
+#   │     Pane 1: Claude          │  (activity live tail)    │
+#   │     (~60% width)            ├──────────────────────────┤
+#   │                             │  Pane 3: pd-watch.sh     │
+#   │                             │  (only when on-call)     │
+#   └─────────────────────────────┴──────────────────────────┘
 
 SESSION="csod"
 AWS_PROFILES_DIR="$HOME/build/aws/profiles"
@@ -26,6 +36,9 @@ tmux new-window -t "$SESSION" -n "SYSTEM"
 
 # Create AUTHS window
 tmux new-window -t "$SESSION" -n "AUTHS"
+
+# Create IDE window
+tmux new-window -t "$SESSION" -n "IDE"
 
 # Set up AUTHS window with 12 panes in a 4x3 grid
 # Pane layout:
@@ -75,9 +88,40 @@ done
 # Select first pane in AUTHS window
 tmux select-pane -t "$SESSION:3.1"
 
+# Set up CLAUDE window:
+#   Pane 1 (left, ~60%):  the Claude session
+#   Pane 2 (top right):   claude-activity live tail
+#   Pane 3 (bottom right): pd-watch when on-call, idle otherwise
+tmux select-window -t "$SESSION:1"
+
+# Vertical split: pane 1 left, pane 2 right (right gets ~40% width)
+tmux split-window -h -t "$SESSION:1" -p 40
+
+# Horizontal split of the right pane: pane 2 top, pane 3 bottom (50/50)
+tmux split-window -v -t "$SESSION:1.2" -p 50
+
+# Pane 1 — Claude session rooted at ~/build
+tmux send-keys -t "$SESSION:1.1" "cd $HOME/build && claude" Enter
+
+# Pane 2 — ensure the Loki/Grafana stack is up (idempotent), then live-tail
+tmux send-keys -t "$SESSION:1.2" "(cd $HOME/build/tools/claude-activity/stack && docker compose up -d) && $HOME/build/tools/claude-activity/viewer/tail-claude.sh" Enter
+
+# Pane 3 — run pd-watch only if I'm currently on-call.
+# am-i-oncall.sh exits 0 when on-call, 1 when not.
+if "$HOME/build/tools/environments/pagerduty/run-env.sh" /scripts/am-i-oncall.sh >/dev/null 2>&1; then
+    tmux send-keys -t "$SESSION:1.3" "$HOME/build/tools/environments/pagerduty/pd-watch.sh 300" Enter
+else
+    tmux send-keys -t "$SESSION:1.3" "clear && echo 'Off-call — pd-watch idle. Start manually: ~/build/tools/environments/pagerduty/pd-watch.sh 300'" Enter
+fi
+
+tmux select-pane -t "$SESSION:1.1"
+
+# Set up IDE window — lvim rooted at ~/build
+tmux send-keys -t "$SESSION:4" "cd $HOME/build && lvim ." Enter
+
 # Go back to CLAUDE window
 tmux select-window -t "$SESSION:1"
 
 # Attach to session
-echo "Created session '$SESSION' with windows: CLAUDE, SYSTEM, AUTHS"
+echo "Created session '$SESSION' with windows: CLAUDE, SYSTEM, AUTHS, IDE"
 tmux attach-session -t "$SESSION"
